@@ -537,8 +537,42 @@ case 'party-add':if(state.party.length<12){state.party.push(state.party.at(-1)||
 case 'party-remove':if(state.party.length>1){state.party.pop();save()}return;
 case 'generate-suggestions':if(el('suggestionContainer'))el('suggestionContainer').innerHTML=suggestionsMarkup();return;
 case 'start-combat':{const valid=state.encounter.filter(x=>getMonster(x.id));let amount=valid.reduce((n,x)=>n+x.qty,0);if(!amount){toast('Adicione criaturas válidas ao encontro',true);return}if(amount>35){toast('Máximo de 35 participantes por envio',true);return}const hadCombat=state.combat.list.length>0;if(hadCombat&&!confirm('Adicionar os novos monstros ao combate atual?'))return;for(const x of valid){const m=getMonster(x.id);for(let i=0;i<x.qty;i++)addFighter(m)}selectedId=null;if(!hadCombat){state.combat.turn=0;state.combat.round=1}localSave();closeModal();go('combat');return}
-case 'focus-combat':selectedId=id;render();return;
+case 'focus-combat':selectedId=id;setCombatOpen(id,true);render();return;
 case 'collapse-combat':selectedId=null;render();return;
+case 'toggle-combat-sheet':{const open=combatOpenIds().includes(id);setCombatOpen(id,!open);render();return}
+case 'combat-open-all':ui.combatOpenIds=state.combat.list.map(f=>f.id);render();return;
+case 'combat-collapse-all':ui.combatOpenIds=[];render();return;
+case 'toggle-batch-target':{const on=!combatTargetIds().includes(id);setCombatTarget(id,on);render();return}
+case 'batch-select-all':ui.combatTargetIds=state.combat.list.map(f=>f.id);render();return;
+case 'batch-clear':ui.combatTargetIds=[];render();return;
+case 'batch-open-selected':{ui.combatOpenIds=[...new Set([...combatOpenIds(),...combatTargetIds()])];render();return}
+case 'sheet-hp':{
+ const f=state.combat.list.find(x=>x.id===id),amount=Number(button?.dataset?.amount);
+ if(!f||!Number.isFinite(amount)||amount===0)return;
+ ui.lastHp={fighterId:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0};
+ applyHitPointDelta(f,amount);
+ addCombatLog(f.name+' '+(amount<0?'sofreu '+(-amount)+' de dano':'recuperou '+amount+' PV')+'.');
+ selectedId=f.id;setCombatOpen(f.id,true);save();return;
+}
+case 'batch-damage':case 'batch-half-damage':case 'batch-heal':{
+ const raw=Math.max(1,clamp(el('batchAmount')?.value,1,99999));ui.batchAmount=raw;
+ const amount=name==='batch-heal'?raw:-(name==='batch-half-damage'?Math.floor(raw/2):raw);
+ if(amount===0){toast('A metade arredondada para baixo resultou em 0.',true);return}
+ batchHitPoints(amount,name==='batch-heal'?'Cura em grupo':name==='batch-half-damage'?'Metade do dano em área':'Dano em área');return;
+}
+case 'undo-batch-hp':{
+ if(!Array.isArray(ui.lastBatchHp)||!ui.lastBatchHp.length)return;
+ let restored=0;
+ ui.lastBatchHp.forEach(snap=>{const f=state.combat.list.find(x=>x.id===snap.id);if(f){f.hp=snap.hp;f.tempHp=snap.tempHp;restored++}});
+ ui.lastBatchHp=null;addCombatLog('Alteração em grupo desfeita para '+restored+' alvo(s).');localSave();render();toast('Alteração em grupo desfeita');return;
+}
+case 'batch-add-condition':case 'batch-remove-condition':{
+ const c=String(el('batchCondition')?.value||'');if(!CONDITIONS.includes(c))return;ui.batchCondition=c;
+ const targets=combatTargetIds().map(fid=>state.combat.list.find(f=>f.id===fid)).filter(Boolean);
+ if(!targets.length){toast('Selecione ao menos um alvo.',true);return}
+ targets.forEach(f=>{const set=new Set(f.conditions||[]);name==='batch-add-condition'?set.add(c):set.delete(c);f.conditions=[...set]});
+ addCombatLog(c+' '+(name==='batch-add-condition'?'aplicada':'removida')+' em '+targets.length+' alvo(s).');localSave();render();toast('Condição atualizada em '+targets.length+' alvo(s)');return;
+}
 case 'add-player':playerModal();return;
 case 'next-turn':{if(!state.combat.list.length)return;advanceEffects(state.combat.list[state.combat.turn]);addCombatLog('Fim do turno de '+state.combat.list[state.combat.turn]?.name+'.');state.combat.turn++;if(state.combat.turn>=state.combat.list.length){state.combat.turn=0;state.combat.round++}selectedId=null;save();return}
 case 'prev-turn':{if(!state.combat.list.length)return;state.combat.turn--;if(state.combat.turn<0){state.combat.turn=state.combat.list.length-1;state.combat.round=Math.max(1,state.combat.round-1)}selectedId=null;save();return}
