@@ -158,9 +158,8 @@ function creaturePortrait(m){
 function percentHP(f){return clamp(Math.round(Number(f?.hp||0)/Math.max(1,Number(f?.maxHp||1))*100),0,100)}
 function hpLevel(f){const p=percentHP(f);return p<=25?'low':p<=55?'mid':''}
 function healthBar(f){return `<div class="hpbar" role="progressbar" aria-label="Pontos de vida" aria-valuemin="0" aria-valuemax="${Number(f.maxHp)||1}" aria-valuenow="${Number(f.hp)||0}"><span class="${hpLevel(f)}" style="width:${percentHP(f)}%"></span></div>`}
-function changeHitPoints(f,difference){
+function applyHitPointDelta(f,difference){
   if(!f||!Number.isFinite(difference))return;
-  ui.lastHp={fighterId:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0};
   if(difference<0){
     let remaining=-difference,temporary=Math.max(0,Number(f.tempHp)||0);
     const absorbed=Math.min(remaining,temporary);
@@ -169,7 +168,37 @@ function changeHitPoints(f,difference){
   }else{
     f.hp=clamp((Number(f.hp)||0)+difference,0,Math.max(1,Number(f.maxHp)||1));
   }
+}
+function changeHitPoints(f,difference){
+  if(!f||!Number.isFinite(difference))return;
+  ui.lastHp={fighterId:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0};
+  applyHitPointDelta(f,difference);
   addCombatLog(f.name+' '+(difference<0?'sofreu '+(-difference)+' de dano':'recuperou '+difference+' PV')+'.');selectedId=f.id;save();
+}
+function combatOpenIds(){
+  const valid=new Set(state.combat.list.map(f=>f.id));
+  ui.combatOpenIds=Array.isArray(ui.combatOpenIds)?ui.combatOpenIds.filter(id=>valid.has(id)):[];
+  return ui.combatOpenIds;
+}
+function combatTargetIds(){
+  const valid=new Set(state.combat.list.map(f=>f.id));
+  ui.combatTargetIds=Array.isArray(ui.combatTargetIds)?ui.combatTargetIds.filter(id=>valid.has(id)):[];
+  return ui.combatTargetIds;
+}
+function setCombatOpen(id,on){
+  const set=new Set(combatOpenIds());on?set.add(id):set.delete(id);ui.combatOpenIds=[...set];
+}
+function setCombatTarget(id,on){
+  const set=new Set(combatTargetIds());on?set.add(id):set.delete(id);ui.combatTargetIds=[...set];
+}
+function batchHitPoints(difference,label){
+  const ids=combatTargetIds(),fighters=ids.map(id=>state.combat.list.find(f=>f.id===id)).filter(Boolean);
+  if(!fighters.length){toast('Selecione ao menos um alvo no painel tático.',true);return}
+  if(!Number.isFinite(difference)||difference===0)return;
+  ui.lastBatchHp=fighters.map(f=>({id:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0}));
+  fighters.forEach(f=>applyHitPointDelta(f,difference));
+  addCombatLog(label+': '+fighters.length+' alvo(s), '+Math.abs(difference)+' PV por alvo.');
+  localSave();render();toast(label+' aplicado em '+fighters.length+' alvo(s)');
 }
 
 function monsterCard(m){return `<article class="monster-card"><div class="atlas-monster-art">${creaturePortrait(m)}</div><div class="card-top"><div><div class="monster-meta"><div><div class="eyebrow">${esc(TYPE[m.type]||m.type)}</div><h3>${esc(titleOf(m))}</h3><p>${esc(SIZE[m.size]||m.size)}</p></div></div></div><span class="pill gold">ND ${esc(m.cr)}</span></div><div class="facts"><div><b>${esc(m.armor_class)}</b><small>CA</small></div><div><b>${esc(m.hp_max)}</b><small>PV</small></div><div><b>${fmt(xp(m))}</b><small>XP</small></div></div><div class="card-actions"><button class="btn sm" data-action="details" data-id="${esc(m.id)}">Ficha e imagem</button><button class="btn sm gold" data-action="add-encounter" data-id="${esc(m.id)}">+ Encontro</button></div></article>`}
