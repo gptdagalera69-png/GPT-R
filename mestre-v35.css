@@ -7,3 +7,5 @@
 .atlas-record h4{font:600 17px Cinzel,Georgia,serif;color:#f2d6a3;margin:10px 0}
 .atlas-record p{white-space:pre-wrap;overflow-wrap:anywhere;color:#dce1e5;line-height:1.6;font-size:13px}
 @media(max-width:580px){.atlas-roll-actions{display:grid;grid-template-columns:1fr}.atlas-roll-actions .btn{width:100%;min-height:48px}.atlas-record-grid{grid-template-columns:1fr}}
+
+.atlas-effects{display:grid;gap:8px;margin:12px 0}.atlas-effect{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #8a704d;border-radius:9px;background:#182737}.atlas-effect b{flex:1;color:#f4deb4}.atlas-effect small{color:#b8c9d4}.atlas-effect button{min-width:40px;min-height:40px}.combat-control #effectName{min-width:125px;flex:2}.combat-control #effectTurns{max-width:78px;flex:1}@media(max-width:650px){.combat-control .manual-hp:has(#effectName){flex-wrap:wrap}.combat-control #effectName{flex-basis:55%}.combat-control #effectTurns{flex-basis:25%}}
