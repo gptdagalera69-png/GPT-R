@@ -17,7 +17,7 @@ Ferramenta web para mestres de D&D (2024/2025), em português, com layout adapta
 - Sincronização **opt-in** com um projeto Supabase com autenticação e RLS
 
 ## Implantação
-A aplicação é **HTML/CSS/JavaScript sem dependências** e pode ser hospedada na Vercel conectando o repositório `gptdagalera69-png/GPT-R`. Framework: Other; diretório raiz `/`; sem comando de build.
+A aplicação é **HTML/CSS/JavaScript sem dependências de execução no navegador** e pode ser hospedada na Vercel conectando o repositório `gptdagalera69-png/GPT-R`. Framework: Other; diretório raiz `/`; sem comando de build.
 
 Para testar localmente, sirva a pasta com um servidor HTTP (não abra `index.html` como arquivo).
 
@@ -37,7 +37,7 @@ python3 -m http.server 8000
 
 ### Limitações conhecidas
 - A nuvem só fica funcional após criação e configuração do projeto Supabase e execução da migração.
-- Os dados de criaturas do SRD estão em inglês na fonte; alguns rótulos e termos de interface estão em português.
+- As 322 criaturas possuem nomes PT-BR em `data/nomes-pt-BR.json`. As descrições em português são geradas por um processo offline (GitHub Actions + Argos Translate) em `data/monsters.pt-BR.json` e não dependem de tradução no navegador. Por se tratar de tradução automática, a revisão editorial é necessária.
 - O balanceamento por XP não garante encontros seguros; revise habilidades de monstros, economia de ações e composição dos personagens.
 - Condições são marcadas manualmente; contagem automática de duração, mapas/grids, multiplayer e fichas completas dos jogadores são para futuras versões.
 - Se dois dispositivos alterarem a mesma sessão ao mesmo tempo, pode prevalecer o salvamento mais recente; evite edições concorrentes.
@@ -58,3 +58,9 @@ Este aplicativo não oferece PDFs comerciais nem afirma conter todas as criatura
 - `data/monsters.json`: fichas SRD estruturadas
 - `sw.js`, `manifest.webmanifest`, `icon.svg`: PWA
 - `supabase/001_dm_workspace.sql`: tabela + RLS
+
+## Idioma: Português brasileiro
+
+O idioma padrão é **pt-BR** e a interface não oferece botão de tradução. Os nomes dos 322 monstros têm equivalentes brasileiros pré-definidos. O acervo mecânico completo em português fica em `data/monsters.pt-BR.json`, que é compilado **uma vez pelo GitHub Actions** (`.github/workflows/preparar-ptbr.yml`) usando tradução offline com Argos Translate e fica armazenado no próprio repositório. O aplicativo procura esse arquivo primeiro; se a geração ainda não tiver sido concluída, usa temporariamente os dados originais do SRD com nomes traduzidos e avisa que as descrições brasileiras estão em preparação.
+
+**Importante:** a tradução automática não é oficial nem substitui a conferência das regras. A auditoria de expressões de dados fica em `data/auditoria-pt-BR.json` após a geração. Para conferir o progresso, abra a aba Actions do GitHub e procure `Preparar bestiário em português`. Se a workflow precisar de permissão, ative Actions e habilite a permissão de gravação de `GITHUB_TOKEN` no repositório para que o arquivo final seja commitado.
