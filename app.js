@@ -254,16 +254,53 @@ function monsterModal(id){
   </div>`,true,'sheet-drawer');
 }
 
-function builder(){let budgets=budget(),total=groupXp(),dmap={low:'Baixa',moderate:'Moderada',high:'Alta'};let sel=state.encounter;
-return pageHeader('PREPARAÇÃO DE AVENTURAS','Criador de encontros','Configure o grupo, escolha criaturas e calcule a dificuldade estimada pelas regras de 2024.',`<button class="btn outline" data-action="save-encounter">Salvar encontro</button>`)+`
-<div class="builder-layout"><section class="panel"><h3>Seu grupo de aventureiros</h3><div class="split"><span class="caption">Personagens: <b>${state.party.length}</b></span><div class="actions"><button class="btn sm" data-action="party-remove" ${state.party.length<=1?'disabled':''}>−</button><button class="btn sm" data-action="party-add" ${state.party.length>=12?'disabled':''}>+</button></div></div><div class="form-label">Nível de cada personagem</div><div class="levels">${state.party.map((l,i)=>`<label>P${i+1}<input aria-label="Nível personagem ${i+1}" type="number" min="1" max="20" value="${l}" data-party-index="${i}"></label>`).join('')}</div>
-<label class="form-label" for="difficulty">Dificuldade desejada</label><select id="difficulty" class="select" style="width:100%"><option value="low" ${state.difficulty==='low'?'selected':''}>Baixa</option><option value="moderate" ${state.difficulty==='moderate'?'selected':''}>Moderada</option><option value="high" ${state.difficulty==='high'?'selected':''}>Alta</option></select>
-<div class="hr"></div><h3>Orçamento de XP</h3><div class="xp-grid">${['Baixa','Moderada','Alta'].map((x,i)=>`<div><small>${x}</small><b>${fmt(budgets[i])}</b></div>`).join('')}</div><div class="meter"><div style="width:${Math.min(100,Math.round(total/Math.max(budgets[2],1)*100))}%"></div></div><div class="split"><span class="caption">XP dos monstros: <b>${fmt(total)}</b></span><span class="pill gold">${difficulty(total,budgets)}</span></div><div class="hr"></div><button class="btn gold full" data-action="generate-suggestions">✧ Recomendar criaturas</button><p class="caption" style="margin-top:11px">Cálculo: soma direta dos XP dos monstros, sem multiplicador de quantidade (DMG 2024). Recomendações são auxiliares.</p></section>
-<section><div class="panel"><div class="split"><h3 style="margin:0">Criaturas escolhidas</h3><button class="btn sm ghost" data-action="clear-encounter">Limpar</button></div><div id="encounterList">${sel.length?sel.map(x=>{const m=getMonster(x.id);return m?`<div class="encounter-item"><div><b>${esc(m.name)}</b><small>ND ${esc(m.cr)} • ${fmt(xp(m)*x.qty)} XP</small></div><div class="counter"><button data-action="dec-encounter" data-id="${esc(m.id)}">−</button><b>${x.qty}</b><button data-action="add-encounter" data-id="${esc(m.id)}">+</button></div><button class="btn sm" data-action="details" data-id="${esc(m.id)}">Ficha</button></div>`:''}).join(''):`<div class="empty"><div class="symbol">⚔</div><h3>Nenhum monstro selecionado</h3><p>Adicione criaturas do bestiário ou use o gerador abaixo.</p><button class="btn gold" data-view="bestiary">Abrir bestiário</button></div>`}</div>
-${total?warningMarkup(total):''}<div class="actions"><button class="btn gold" data-action="start-combat" ${!sel.length?'disabled':''}>⚔ Levar criaturas ao combate</button><button class="btn" data-action="save-encounter" ${!sel.length?'disabled':''}>Salvar composição</button></div></div>
-<div class="panel" style="margin-top:17px"><h3>Recomendações por XP</h3><div class="filter-bar"><input id="builderQuery" class="field search" value="${esc(builderFilter.q)}" placeholder="Criatura específica (opcional)"><select class="select" id="builderType"><option value="">Qualquer tipo</option>${Object.entries(TYPE).map(([k,v])=>`<option value="${esc(k)}" ${builderFilter.type===k?'selected':''}>${esc(v)}</option>`).join('')}</select><select class="select" id="builderCR"><option value="">Todos os NDs</option>${Object.keys(CR_XP).map(k=>`<option value="${k}" ${builderFilter.cr===k?'selected':''}>ND ${k}</option>`).join('')}</select></div><div id="suggestionContainer">${suggestionsMarkup()}</div></div>
-${state.savedEncounters.length?`<div class="panel" style="margin-top:17px"><h3>Encontros salvos</h3>${state.savedEncounters.slice(-8).reverse().map(x=>`<div class="feature"><span>⚔</span><div><b>${esc(x.name)}</b><small>${fmt(x.xp)} XP • ${esc(x.date)}</small></div><button class="btn sm" data-action="load-encounter" data-id="${esc(x.id)}">Carregar</button><button class="btn sm danger" data-action="delete-encounter" data-id="${esc(x.id)}">×</button></div>`).join('')}</div>`:''}
-</section></div>`}
+function builder(){
+ const budgets=budget(),total=groupXp(),sel=state.encounter;
+ const creatureCount=sel.reduce((n,x)=>n+Number(x.qty||0),0);
+ const chosen=sel.map(x=>({item:x,monster:getMonster(x.id)})).filter(x=>x.monster);
+ const summary=`<div class="encounter-summary">
+   <div><small>GRUPO</small><strong>${state.party.length}</strong><span>personagens</span></div>
+   <div><small>INIMIGOS</small><strong>${creatureCount}</strong><span>criaturas</span></div>
+   <div><small>XP DO ENCONTRO</small><strong>${fmt(total)}</strong><span>pontos de experiência</span></div>
+   <div><small>DIFICULDADE</small><strong>${difficulty(total,budgets)}</strong><span>estimativa atual</span></div>
+ </div>`;
+ return pageHeader('PREPARAÇÃO DE AVENTURAS','Criador de encontros','Monte o grupo e as criaturas em uma área maior, com controles rápidos para preparar a batalha.',`<button class="btn encounter-big-btn outline" data-action="save-encounter" ${!sel.length?'disabled':''}>Salvar encontro</button><button class="btn encounter-big-btn gold" data-action="start-combat" ${!sel.length?'disabled':''}>⚔ Iniciar combate</button>`)+summary+`
+ <div class="encounter-command">
+  <section class="panel encounter-party-panel">
+   <div class="encounter-panel-head"><div><div class="eyebrow">1 · GRUPO</div><h2>Aventureiros</h2></div><span class="pill blue">${state.party.length} jogadores</span></div>
+   <p class="caption">Ajuste os níveis para calcular os limites de XP e a dificuldade.</p>
+   <div class="encounter-party-tools"><button class="btn encounter-square-btn" data-action="party-remove" ${state.party.length<=1?'disabled':''} aria-label="Remover personagem">−</button><div class="levels encounter-levels">${state.party.map((l,i)=>`<label><span>P${i+1}</span><input aria-label="Nível personagem ${i+1}" type="number" min="1" max="20" value="${l}" data-party-index="${i}"></label>`).join('')}</div><button class="btn encounter-square-btn gold" data-action="party-add" ${state.party.length>=12?'disabled':''} aria-label="Adicionar personagem">+</button></div>
+   <label class="form-label" for="difficulty">Dificuldade desejada</label>
+   <select id="difficulty" class="select encounter-select"><option value="low" ${state.difficulty==='low'?'selected':''}>Baixa</option><option value="moderate" ${state.difficulty==='moderate'?'selected':''}>Moderada</option><option value="high" ${state.difficulty==='high'?'selected':''}>Alta</option></select>
+   <div class="hr"></div>
+   <div class="encounter-budget-title"><h3>Orçamento de XP</h3><span class="pill gold">${difficulty(total,budgets)}</span></div>
+   <div class="xp-grid encounter-xp-grid">${['Baixa','Moderada','Alta'].map((x,i)=>`<div><small>${x}</small><b>${fmt(budgets[i])}</b></div>`).join('')}</div>
+   <div class="meter encounter-meter"><div style="width:${Math.min(100,Math.round(total/Math.max(budgets[2],1)*100))}%"></div></div>
+   <div class="split"><span class="caption">XP selecionado</span><strong>${fmt(total)} XP</strong></div>
+   <button class="btn gold full encounter-big-btn" data-action="generate-suggestions">✧ Recomendar criaturas</button>
+  </section>
+
+  <section class="panel encounter-selection-panel">
+   <div class="encounter-panel-head"><div><div class="eyebrow">2 · COMPOSIÇÃO</div><h2>Criaturas escolhidas</h2></div><button class="btn ghost encounter-big-btn" data-action="clear-encounter" ${!sel.length?'disabled':''}>Limpar</button></div>
+   <div id="encounterList" class="encounter-list-large">${chosen.length?chosen.map(({item:x,monster:m})=>`
+    <article class="encounter-creature-row">
+      <div class="encounter-creature-main"><div class="encounter-mini-art">${creaturePortrait(m)}</div><div><b>${esc(m.name)}</b><small>ND ${esc(m.cr)} · ${fmt(xp(m))} XP cada · ${fmt(xp(m)*x.qty)} XP total</small></div></div>
+      <div class="counter encounter-counter"><button data-action="dec-encounter" data-id="${esc(m.id)}" aria-label="Remover uma criatura">−</button><b>${x.qty}</b><button data-action="add-encounter" data-id="${esc(m.id)}" aria-label="Adicionar uma criatura">+</button></div>
+      <button class="btn encounter-row-btn" data-action="details" data-id="${esc(m.id)}">Ver ficha</button>
+    </article>`).join(''):`<div class="empty encounter-empty"><div class="symbol">⚔</div><h3>Nenhum monstro selecionado</h3><p>Escolha criaturas no Bestiário ou use as recomendações abaixo.</p><button class="btn gold encounter-big-btn" data-view="bestiary">Abrir bestiário</button></div>`}</div>
+   ${total?warningMarkup(total):''}
+   <div class="encounter-primary-actions"><button class="btn gold encounter-big-btn" data-action="start-combat" ${!sel.length?'disabled':''}>⚔ Levar para o combate</button><button class="btn outline encounter-big-btn" data-action="save-encounter" ${!sel.length?'disabled':''}>Salvar composição</button></div>
+  </section>
+ </div>
+
+ <section class="panel encounter-recommend-panel">
+   <div class="encounter-panel-head"><div><div class="eyebrow">3 · RECOMENDAÇÕES</div><h2>Encontrar criaturas</h2></div><span class="caption">Baseado no XP e nos filtros</span></div>
+   <div class="filter-bar encounter-filters"><input id="builderQuery" class="field search" value="${esc(builderFilter.q)}" placeholder="Buscar criatura específica"><select class="select" id="builderType"><option value="">Qualquer tipo</option>${Object.entries(TYPE).map(([k,v])=>`<option value="${esc(k)}" ${builderFilter.type===k?'selected':''}>${esc(v)}</option>`).join('')}</select><select class="select" id="builderCR"><option value="">Todos os NDs</option>${Object.keys(CR_XP).map(k=>`<option value="${k}" ${builderFilter.cr===k?'selected':''}>ND ${k}</option>`).join('')}</select></div>
+   <div id="suggestionContainer" class="encounter-suggestions">${suggestionsMarkup()}</div>
+ </section>
+ ${state.savedEncounters.length?`<section class="panel encounter-saved-panel"><div class="encounter-panel-head"><div><div class="eyebrow">ARQUIVO</div><h2>Encontros salvos</h2></div><span class="pill blue">${state.savedEncounters.length}</span></div><div class="encounter-saved-grid">${state.savedEncounters.slice(-12).reverse().map(x=>`<article class="encounter-saved-card"><div><b>${esc(x.name)}</b><small>${fmt(x.xp)} XP · ${esc(x.date||'—')}</small></div><div class="actions"><button class="btn gold encounter-row-btn" data-action="load-encounter" data-id="${esc(x.id)}">Carregar</button><button class="btn danger encounter-row-btn" data-action="delete-encounter" data-id="${esc(x.id)}">Excluir</button></div></article>`).join('')}</div></section>`:''}
+ `;
+}
 function warningMarkup(total){const n=state.encounter.reduce((a,b)=>a+b.qty,0);let msgs=[];if(total>budget()[2])msgs.push('Encontro acima do orçamento alto. Revise com cuidado.');if(n>state.party.length*2)msgs.push('Muitos oponentes: a economia de ações pode favorecer os monstros.');if(state.encounter.some(x=>getMonster(x.id)?.cr_numeric>=Math.min(...state.party)))msgs.push('Ao menos um inimigo possui ND igual ou maior que o nível do aventureiro menos experiente. Revise efeitos de incapacitação, dano por rodada e resistências.');return msgs.length?`<div class="notice" style="margin:17px 0"><b>⚠ Avisos táticos</b><br>${msgs.map(esc).join('<br>')}</div>`:''}
 function suggestCore(){const target=budget()[{low:0,moderate:1,high:2}[state.difficulty]??1];const matches=allMonsters().filter(m=>xp(m)>0&&xp(m)<=target*1.05&&(!builderFilter.type||m.type===builderFilter.type)&&(!builderFilter.cr||m.cr===builderFilter.cr)&&(!builderFilter.q||norm(m.name+' '+(m.name_en||'')+' '+pseudoPT(m)).includes(norm(builderFilter.q))));const min=Math.min(...state.party),maxN=state.party.length*2;let proposals=[];for(const m of matches){for(let qty=1;qty<=Math.min(maxN,8);qty++){const cost=xp(m)*qty;const delta=Math.abs(cost-target);if(cost<=target*1.09&&cost>=target*.35){proposals.push({id:m.id,qty,cost,delta,score:delta+Math.max(0,m.cr_numeric-min)*target*.3})}}}
 return proposals.sort((a,b)=>a.score-b.score).slice(0,8)}
