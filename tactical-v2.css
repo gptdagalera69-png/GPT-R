@@ -50,8 +50,9 @@
 .tactical-batch-top p{margin:0;max-width:780px;color:#b9c3cc;font-size:12px;line-height:1.5}
 .tactical-selected-count{flex:0 0 auto;padding:9px 12px;border:1px solid rgba(242,199,124,.4);border-radius:999px;color:#e8d5b5}
 .tactical-selected-count b{color:#ffe0a3;font-size:18px}
-.tactical-batch-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-top:14px}
+.tactical-batch-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:14px}
 .tactical-batch-block{padding:13px;border:1px solid rgba(219,184,126,.18);border-radius:12px;background:rgba(11,24,36,.45)}
+.tactical-batch-block{max-width:900px}
 .tactical-batch-block>label{display:block;font-size:11px;font-weight:800;letter-spacing:.07em;color:#cbd4dc;margin-bottom:7px}
 .tactical-batch-block .field,.tactical-batch-block .select{width:100%;min-height:46px}
 .tactical-batch-actions,.tactical-batch-footer{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
