@@ -1,4 +1,4 @@
-const CACHE='central-mestre-v12';
+const CACHE='central-mestre-v13';
 const SHELL=['/','/index.html','/styles.css','/theme-v2.css','/atlas-v3.css','/mestre-v35.css','/monster-art-v1.css','/ux-responsive-v1.css','/assets/creature-symbols.svg','/assets/atlas-logo.svg','/assets/hero-citadel.svg','/assets/atlas-icons.svg','/app.js','/sync.js','/manifest.webmanifest','/icon.svg','/data/monsters.json','/data/nomes-pt-BR.json'];
 
 self.addEventListener('install',e=>{
@@ -18,7 +18,7 @@ self.addEventListener('fetch',e=>{
     e.respondWith(fetch(e.request).then(response=>{
       if(response.ok){const copy=response.clone();caches.open(CACHE).then(c=>c.put(e.request,copy))}
       return response;
-    }).catch(()=>caches.match(e.request).then(cached=>cached||caches.match('/index.html'))));
+    }).catch(()=>caches.match(e.request).then(cached=>cached||(e.request.mode==='navigate'?caches.match('/index.html'):Response.error()))));
     return;
   }
   e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(response=>{
