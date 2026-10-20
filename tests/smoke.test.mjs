@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 const monsterData=JSON.parse(readFileSync(new URL('../data/monsters.json',import.meta.url),'utf8'));
+const ptNames=JSON.parse(readFileSync(new URL('../data/nomes-pt-BR.json',import.meta.url),'utf8'));
 test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
  const nodes=new Map(),events={};
  class Node{constructor(){this.innerHTML='';this.textContent='';this.classList={toggle(){}};this.dataset={};}appendChild(){}remove(){}}
@@ -15,7 +16,8 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
  globalThis.prompt=()=>null;
  const oldInterval=globalThis.setInterval;
  globalThis.setInterval=()=>0;
- globalThis.fetch=async(url)=>({ok:true,json:async()=>monsterData});
+ const fetched=[];
+ globalThis.fetch=async(url)=>{fetched.push(String(url));if(String(url).includes('nomes-pt-BR.json'))return{ok:true,json:async()=>ptNames};return{ok:true,json:async()=>monsterData}};
  try{
   await import('../app.js');
   await new Promise(resolve=>setTimeout(resolve,30));
@@ -27,6 +29,8 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
   assert.equal((get('view').match(/class="atlas-stat /g)||[]).length,4);
   const layout=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   assert.match(layout,/atlas-v3.css/);
+  assert.match(layout,/ux-responsive-v1.css/);
+  assert.ok(!fetched.some(u=>u.includes('monsters.pt-BR.json')));
   assert.match(layout,/globalSearchForm/);
   assert.match(layout,/atlas-logo.svg/);
   assert.match(readFileSync(new URL('../atlas-v3.css',import.meta.url),'utf8'),/atlas-stats/);
@@ -34,6 +38,7 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
   const click=async(kind, value,id,extra={})=>events.click({target:{closest(sel){if(kind==='view'&&sel==='[data-view]')return{dataset:{view:value}};if(kind==='action'&&sel==='[data-action]')return{dataset:{action:value,id,...extra}};return null},matches(){return false}}});
   await click('view','bestiary');
   assert.match(get('view'),/Bestiário/);
+  assert.ok(Object.keys(ptNames).length>=322);
   await click('action','details','srd:goblin');
   assert.match(get('modalRoot'),/sheet-layout/);
   assert.match(get('modalRoot'),/creature-portrait/);
