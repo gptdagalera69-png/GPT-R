@@ -10,7 +10,7 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
  const db=new Map();
  globalThis.localStorage={getItem:k=>db.get(k)??null,setItem:(k,v)=>db.set(k,v),removeItem:k=>db.delete(k)};
  globalThis.window={scrollTo(){}};
- globalThis.navigator={};
+ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{}});
  globalThis.confirm=()=>true;
  globalThis.prompt=()=>null;
  const oldInterval=globalThis.setInterval;
