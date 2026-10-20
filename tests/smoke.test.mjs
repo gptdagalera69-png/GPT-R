@@ -49,6 +49,7 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
   assert.match(get('view'),/encounter-command/);
   assert.match(get('view'),/encounter-summary/);
   assert.match(layout,/tactical-v2.css/);
+  assert.match(layout,/bestiary-gallery-v1.css/);
   await click('action','start-combat');
   assert.match(get('view'),/Mesa de combate/);
   assert.match(get('view'),/MAPA TÁTICO/);
