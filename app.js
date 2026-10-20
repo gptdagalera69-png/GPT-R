@@ -150,12 +150,68 @@ return proposals.sort((a,b)=>a.score-b.score).slice(0,8)}
 function suggestionsMarkup(){const arr=suggestCore();return arr.length?arr.map(x=>{const m=getMonster(x.id);return `<div class="feature"><span>♜</span><div><b>${x.qty} × ${esc(m.name)}</b><small>ND ${esc(m.cr)} • ${fmt(x.cost)} XP • ${difficulty(x.cost)}</small></div><button class="btn sm outline" data-action="apply-suggestion" data-id="${esc(x.id)}" data-qty="${x.qty}">Usar</button></div>`}).join(''):'<div class="empty"><p>Nenhuma opção atende aos filtros e ao orçamento. Ajuste o tipo ou a dificuldade.</p></div>'}
 function sortFighters(){state.combat.list.sort((a,b)=>Number(b.initiative)-Number(a.initiative)||a.name.localeCompare(b.name))}
 function addFighter(m){const init=roll()+Number(m.initiative_modifier||0);const existing=state.combat.list.filter(x=>x.monsterId===m.id).length;state.combat.list.push({id:uid(),monsterId:m.id,name:m.name+(existing?' '+(existing+1):''),hp:m.hp_max,maxHp:m.hp_max,tempHp:0,initiative:init,conditions:[],notes:'',isPlayer:false});sortFighters();toast('Criatura adicionada ao combate: '+m.name)}
+
+function combatControl(f,active){
+ if(!f)return '';
+ const pct=percentHP(f),temp=Math.max(0,Number(f.tempHp)||0),numberConditions=f.conditions?.length||0;
+ const conditionStatus=pct<=0?'Sem PV':pct<=25?'Crítico':pct<=55?'Ferido':'Estável';
+ const statusColor=pct<=25?'#ffa199':pct<=55?'#ffd08f':'#a7e6bd';
+ const buttons=(values,positive)=>values.map(n=>
+  '<button type="button" data-action="quick-hp" data-amount="'+(positive?n:-n)+'" aria-label="'+(positive?'Curar ':'Aplicar ')+n+(positive?' pontos de vida':' pontos de dano')+'">'+(positive?'+':'−')+n+'</button>').join('');
+ const tiles=CONDITIONS.map(c=>{
+  const on=f.conditions?.includes(c)||false;
+  return '<button type="button" class="condition-tile'+(on?' on':'')+'" data-action="toggle-condition" data-condition="'+esc(c)+'" aria-pressed="'+on+'"><span class="condition-indicator" aria-hidden="true">'+(on?'✓':'')+'</span>'+esc(c)+'</button>';
+ }).join('');
+ return [
+  '<section class="panel tight combat-control" aria-label="Controle de combate">',
+  '<div class="split"><h3 style="margin:0">Controle de combate</h3><span class="pill '+(f.id===active?.id?'red':'blue')+'">'+(f.id===active?.id?'Turno atual':'Selecionado')+'</span></div>',
+  '<label class="form-label" for="fighterName">Participante</label>',
+  '<input id="fighterName" class="field wide" autocomplete="off" value="'+esc(f.name)+'">',
+  '<div class="hp-console">',
+    '<div class="split"><span class="hp-title">PONTOS DE VIDA</span><span class="hp-status" style="color:'+statusColor+'">'+conditionStatus+'</span></div>',
+    '<div class="hp-count" aria-live="polite"><strong>'+esc(f.hp)+'</strong><small>/ '+esc(f.maxHp)+' PV</small></div>',
+    healthBar(f),
+    '<div class="split" style="margin-top:9px"><span class="caption">Vida restante</span><strong class="caption">'+pct+'%</strong></div>',
+    '<div class="tempbar" aria-label="Pontos de vida temporários"><span style="width:'+clamp(Math.round(100*temp/Math.max(1,f.maxHp)),0,100)+'%"></span></div>',
+    '<span class="caption">PV temporários: <b style="color:#c5ddff">'+temp+'</b> — absorvem dano primeiro</span>',
+  '</div>',
+  '<div class="control-subtitle">Aplicar dano rápido</div>',
+  '<div class="hp-quick" role="group" aria-label="Dano rápido">'+buttons([1,5,10,20],false)+'</div>',
+  '<div class="control-subtitle">Aplicar cura rápida</div>',
+  '<div class="hp-quick heal" role="group" aria-label="Cura rápida">'+buttons([1,5,10,20],true)+'</div>',
+  '<label class="form-label" for="damageAmount">Valor personalizado</label>',
+  '<div class="manual-hp">',
+    '<input id="damageAmount" class="field" type="number" inputmode="numeric" min="0" max="99999" value="5" aria-label="Valor personalizado">',
+    '<button class="btn danger" data-action="damage">− Dano</button>',
+    '<button class="btn gold" data-action="heal">+ Cura</button>',
+  '</div>',
+  '<div class="actions" style="margin-top:9px"><button class="btn sm ghost" data-action="undo-hp" '+(ui.lastHp?.fighterId===f.id?'':'disabled')+'>↶ Desfazer alteração de PV</button></div>',
+  '<div class="hr"></div>',
+  '<div class="small-fields">',
+    '<label>PV atuais<input class="field" id="fighterHP" type="number" min="0" inputmode="numeric" value="'+esc(f.hp)+'"></label>',
+    '<label>PV máximos<input class="field" id="fighterMaxHP" type="number" min="1" inputmode="numeric" value="'+esc(f.maxHp)+'"></label>',
+    '<label>PV temporários<input class="field" id="fighterTempHP" type="number" min="0" inputmode="numeric" value="'+temp+'"></label>',
+    '<label>Iniciativa<input class="field" id="fighterInit" type="number" inputmode="numeric" value="'+esc(f.initiative)+'"></label>',
+  '</div>',
+  '<div class="action-row" style="margin-top:10px"><button class="btn" data-action="roll-fighter">🎲 Rolar iniciativa</button><button class="btn gold" data-action="save-fighter">Salvar valores</button></div>',
+  '<div class="hr"></div>',
+  '<div class="split"><h3 style="margin:0">Condições</h3><span class="pill '+(numberConditions?'red':'green')+'">'+numberConditions+' ativas</span></div>',
+  '<p class="caption" style="margin:9px 0">Toque para marcar ou remover. As durações continuam sob controle do mestre.</p>',
+  '<div class="conditions conditions-grid">'+tiles+'</div>',
+  '<div class="condition-counter" aria-live="polite">'+(numberConditions?'Condições aplicadas: '+esc(f.conditions.join(', ')):'Sem condições registradas.')+'</div>',
+  '<label class="form-label" for="fighterNotes">Anotações do mestre</label>',
+  '<textarea class="textarea" id="fighterNotes" placeholder="Concentração, recargas, efeitos...">'+esc(f.notes||'')+'</textarea>',
+  '<div class="action-row" style="margin-top:9px"><button class="btn gold" data-action="save-fighter">Salvar anotações</button><button class="btn danger" data-action="remove-fighter">Remover participante</button></div>',
+  '</section>'
+ ].join('');
+}
+
 function combat(){const fighters=state.combat.list;const active=fighters[state.combat.turn];if(selectedId&&!fighters.some(f=>f.id===selectedId))selectedId=null;const focused=fighters.find(f=>f.id===selectedId)||active;
 return pageHeader('SESSÃO EM ANDAMENTO','Mesa de combate','Iniciativa integrada, PV individuais, condições e controle de rodadas.',`<button class="btn outline" data-action="add-player">+ Personagem</button><button class="btn" data-view="bestiary">+ Monstro</button>`)+`
 <div class="round-banner"><div><small>RODADA</small><br><strong>${state.combat.round}</strong></div><div class="grow"><small>TURNO ATUAL</small><br><b>${esc(active?.name||'Nenhum combate ativo')}</b></div><button class="btn" data-action="prev-turn" ${!fighters.length?'disabled':''}>← Anterior</button><button class="btn gold" data-action="next-turn" ${!fighters.length?'disabled':''}>Próximo turno →</button></div>
 ${fighters.length?`<div class="combat-layout"><section class="panel tight"><div class="split"><h3 style="margin:0">Iniciativa</h3><button class="btn sm ghost" data-action="roll-all">Rolar NPCs</button></div><p class="caption">Clique num participante para editar.</p><div class="roster">${fighters.map((f,i)=>`<button class="roster-item ${focused?.id===f.id?'selected':''}" data-action="focus-combat" data-id="${esc(f.id)}"><span class="init">${esc(f.initiative)}</span><span class="who"><b>${i===state.combat.turn?'▶ ':''}${esc(f.name)}</b><small>${f.isPlayer?'Personagem':'Monstro'} • ${f.hp}/${f.maxHp} PV</small><div class="hpbar"><span class="${f.hp/f.maxHp<.3?'low':''}" style="width:${clamp((f.hp/Math.max(f.maxHp,1))*100,0,100)}%"></span></div></span></button>`).join('')}</div><div class="hr"></div><button class="btn sm danger full" data-action="clear-combat">Encerrar combate</button></section>
-<section class="panel">${focused?.isPlayer?playerBlock(focused):statBlock(getMonster(focused.monsterId))}</section>
-<section class="panel tight"><h3>Gerenciar participante</h3><div class="form-label">Nome de exibição</div><input id="fighterName" class="field wide" value="${esc(focused?.name||'')}"><div class="form-label">PV / PV máximo</div><div class="controls-line"><input class="field num" type="number" id="fighterHP" value="${focused?.hp??0}"><span>/</span><input class="field num" type="number" id="fighterMaxHP" value="${focused?.maxHp??0}"></div><div class="form-label">Dano ou cura</div><div class="controls-line"><input id="damageAmount" class="field num" type="number" min="0" value="5"><button class="btn sm danger" data-action="damage">− Dano</button><button class="btn sm" data-action="heal">+ Cura</button></div><div class="form-label">Iniciativa</div><div class="controls-line"><input id="fighterInit" type="number" class="field num" value="${focused?.initiative??0}"><button class="btn sm" data-action="roll-fighter">🎲 Rolar</button><button class="btn sm" data-action="save-fighter">Salvar</button></div><div class="form-label">Condições</div><div class="conditions">${CONDITIONS.map(c=>`<button class="${focused?.conditions.includes(c)?'on':''}" data-action="toggle-condition" data-condition="${esc(c)}">${esc(c)}</button>`).join('')}</div><div class="form-label">Anotações</div><textarea class="textarea" id="fighterNotes" placeholder="Concentração, efeitos, recursos, observações...">${esc(focused?.notes||'')}</textarea><div class="actions"><button class="btn sm" data-action="save-fighter">Salvar mudanças</button><button class="btn sm danger" data-action="remove-fighter">Remover</button></div></section></div>`:`<div class="empty"><div class="symbol">⚔</div><h3>Sua mesa aguarda os aventureiros</h3><p>Monte um encontro e envie os monstros para esta mesa, ou adicione personagens manualmente.</p><div class="actions" style="justify-content:center"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn outline" data-action="add-player">+ Personagem</button></div></div>`}`}
+<section class="panel combat-stat">${focused?.monsterId?creaturePortrait(getMonster(focused.monsterId)):""}${focused?.isPlayer?playerBlock(focused):statBlock(getMonster(focused.monsterId))}</section>
+${combatControl(focused,active)}</div>`:`<div class="empty"><div class="symbol">⚔</div><h3>Sua mesa aguarda os aventureiros</h3><p>Monte um encontro e envie os monstros para esta mesa, ou adicione personagens manualmente.</p><div class="actions" style="justify-content:center"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn outline" data-action="add-player">+ Personagem</button></div></div>`}`}
 function playerBlock(f){return `<div class="statblock"><div class="eyebrow">PERSONAGEM DO GRUPO</div><h2>${esc(f.name)}</h2><div class="subline">Participante cadastrado manualmente</div><div class="basicstats"><div><small>INICIATIVA</small><b>${esc(f.initiative)}</b></div><div><small>PONTOS DE VIDA</small><b>${esc(f.hp)}</b></div><div><small>PV MÁXIMO</small><b>${esc(f.maxHp)}</b></div></div><p>É possível controlar a iniciativa e os PV dos personagens agora. As fichas completas dos jogadores ficarão para a próxima fase do aplicativo.</p></div>`}
 function campaigns(){return pageHeader('SEU MUNDO','Campanhas','Organize aventuras, notas e encontros preparados.',`<button class="btn gold" data-action="new-campaign">+ Nova campanha</button>`)+`${state.campaigns.length?`<div class="grid campaign-grid">${state.campaigns.map(c=>`<article class="panel campaign-card"><span class="pill gold">${state.campaignId===c.id?'Atual':'Campanha'}</span><h3 style="margin-top:13px">${esc(c.name)}</h3><p>${esc(c.description||'Nenhuma descrição.')}</p><small>Atualizada: ${esc(c.date||'—')}</small><div class="actions"><button class="btn sm gold" data-action="edit-campaign" data-id="${esc(c.id)}">Abrir notas</button><button class="btn sm" data-action="select-campaign" data-id="${esc(c.id)}">Selecionar</button></div></article>`).join('')}</div>`:`<div class="empty"><div class="symbol">▦</div><h3>Crie sua primeira campanha</h3><p>Registre o nome, a premissa e anotações importantes da sua história. Os encontros salvos poderão ser associados a ela.</p><button class="btn gold" data-action="new-campaign">Criar campanha</button></div>`}`}
 function settings(){return pageHeader('CONFIGURAÇÃO','Seu grimório','Gerencie cópias de segurança, dados personalizados e sincronização entre dispositivos.')+`<div class="cols2"><section class="panel"><h3>Salvamento e segurança</h3><p>O aplicativo guarda os dados neste navegador. Configure a nuvem para sincronizar com outros dispositivos.</p><div class="actions"><button class="btn gold" data-action="backup">↓ Exportar backup JSON</button><button class="btn" data-action="import-backup">↑ Importar backup</button><input id="backupFile" type="file" accept=".json,application/json" hidden></div><div class="hr"></div><h3>Dados do bestiário</h3><p>${monsters.length} criaturas SRD, ${state.customMonsters.length} personalizadas. Material SRD em inglês, filtros em português.</p><button class="btn outline" data-action="new-monster">+ Criar criatura personalizada</button><div class="hr"></div><h3>Instalar em dispositivo</h3><p>Se o navegador oferecer “Instalar aplicativo” ou “Adicionar à tela inicial”, você poderá utilizar a Central como um app. Depois do primeiro acesso, as telas principais e os dados baixados ficam disponíveis offline.</p></section><section class="panel"><h3>Sincronização Supabase</h3>${cloudForm()}<div class="hr"></div><p class="caption">As chaves públicas do Supabase não são senhas. A segurança depende das políticas de Row Level Security (RLS). Nunca coloque a service_role key aqui.</p></section></div>`}
