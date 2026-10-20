@@ -171,7 +171,7 @@ function applyHitPointDelta(f,difference){
 }
 function changeHitPoints(f,difference){
   if(!f||!Number.isFinite(difference))return;
-  ui.lastHp={fighterId:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0};
+  ui.lastHp={fighterId:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0};ui.lastBatchHp=null;
   applyHitPointDelta(f,difference);
   addCombatLog(f.name+' '+(difference<0?'sofreu '+(-difference)+' de dano':'recuperou '+difference+' PV')+'.');selectedId=f.id;save();
 }
@@ -549,7 +549,7 @@ case 'batch-open-selected':{ui.combatOpenIds=[...new Set([...combatOpenIds(),...
 case 'sheet-hp':{
  const f=state.combat.list.find(x=>x.id===id),amount=Number(button?.dataset?.amount);
  if(!f||!Number.isFinite(amount)||amount===0)return;
- ui.lastHp={fighterId:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0};
+ ui.lastHp={fighterId:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0};ui.lastBatchHp=null;
  applyHitPointDelta(f,amount);
  addCombatLog(f.name+' '+(amount<0?'sofreu '+(-amount)+' de dano':'recuperou '+amount+' PV')+'.');
  selectedId=f.id;setCombatOpen(f.id,true);save();return;
