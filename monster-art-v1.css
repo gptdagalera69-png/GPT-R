@@ -1,1 +1,20 @@
 .atlas-monster-art{height:176px;overflow:hidden;margin:-1px -1px 12px;border-radius:11px 11px 0 0;background:radial-gradient(circle at center,#35485a,#111d2a)}.atlas-monster-art .creature-portrait{height:100%;min-height:0;width:100%;border-radius:0}.atlas-monster-art img{width:100%;height:100%;object-fit:cover}.atlas-monster-art svg{max-height:150px}.atlas-combat-avatar{width:48px;height:48px;flex:0 0 48px;display:block;border-radius:8px;overflow:hidden;border:1px solid #ad8658;background:#1b2937}.atlas-combat-avatar .creature-portrait{height:100%;width:100%;min-height:0;border:0;border-radius:0;margin:0;padding:0}.atlas-combat-avatar img{height:100%;width:100%;object-fit:cover}.atlas-combat-avatar svg{height:100%;width:100%}.avatar-player{display:grid;place-items:center;height:100%;color:#e9c58d;font-size:23px}.roster-item{gap:9px}.roster-item .who{min-width:0}.roster-item .who b{overflow-wrap:anywhere}@media(max-width:580px){.atlas-monster-art{height:135px}.atlas-combat-avatar{width:39px;height:39px;flex-basis:39px}}
+/* Mobile-first tactical overview: six or more participants remain scannable */
+.atlas-close-detail{display:none}
+@media(max-width:900px){
+ .atlas-combat-layout{display:flex!important;flex-direction:column;gap:12px}
+ .atlas-roster-panel{width:100%!important;max-width:none!important}
+ .atlas-roster-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:none!important;overflow:visible!important}
+ .atlas-roster-card{display:flex!important;min-width:0;min-height:88px;padding:8px!important;gap:7px;align-items:center}
+ .atlas-roster-card .atlas-combat-avatar{width:42px;height:48px;flex:0 0 42px}
+ .atlas-roster-card .init{display:none}
+ .atlas-roster-card .who{min-width:0;flex:1;text-align:left}
+ .atlas-roster-card .who b{display:block;font-size:12px;line-height:1.25;overflow-wrap:anywhere}
+ .atlas-roster-card .who small{display:block;font-size:10px;line-height:1.35}
+ .atlas-roster-card .portrait-label{display:none}
+ .atlas-combat-stat,.atlas-control-wrap{display:none!important}
+ .atlas-combat-stat.atlas-detail-open,.atlas-control-wrap.atlas-detail-open{display:block!important;width:100%!important}
+ .atlas-close-detail{display:inline-flex;margin-bottom:12px}
+ .atlas-combat-stat .creature-portrait{max-height:190px}
+}
+@media(max-width:370px){.atlas-roster-card .atlas-combat-avatar{width:34px;flex-basis:34px;height:42px}.atlas-roster-card{padding:6px!important}.atlas-roster-card .who b{font-size:11px}}
