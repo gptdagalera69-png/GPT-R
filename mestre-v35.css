@@ -1,0 +1,9 @@
+/* Mestre 3.5: controles de rolagem e diário */
+.atlas-roll-actions{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}
+.atlas-roll-actions .btn{min-height:45px;text-align:left;white-space:normal}
+.atlas-notebook{margin-bottom:18px}
+.atlas-record-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.atlas-record{border:1px solid #9a7955;border-radius:11px;padding:15px;background:#172535}
+.atlas-record h4{font:600 17px Cinzel,Georgia,serif;color:#f2d6a3;margin:10px 0}
+.atlas-record p{white-space:pre-wrap;overflow-wrap:anywhere;color:#dce1e5;line-height:1.6;font-size:13px}
+@media(max-width:580px){.atlas-roll-actions{display:grid;grid-template-columns:1fr}.atlas-roll-actions .btn{width:100%;min-height:48px}.atlas-record-grid{grid-template-columns:1fr}}
