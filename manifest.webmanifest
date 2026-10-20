@@ -1,0 +1,18 @@
+{
+  "id": "/index.html",
+  "name": "Central do Mestre — RPG",
+  "short_name": "Central Mestre",
+  "description": "Bestiário, encontros e mesa de combate",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#11161c",
+  "theme_color": "#11161c",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
