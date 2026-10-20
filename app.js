@@ -209,7 +209,7 @@ function combatControl(f,active){
 function combat(){const fighters=state.combat.list;const active=fighters[state.combat.turn];if(selectedId&&!fighters.some(f=>f.id===selectedId))selectedId=null;const focused=fighters.find(f=>f.id===selectedId)||active;
 return pageHeader('SESSÃO EM ANDAMENTO','Mesa de combate','Iniciativa integrada, PV individuais, condições e controle de rodadas.',`<button class="btn outline" data-action="add-player">+ Personagem</button><button class="btn" data-view="bestiary">+ Monstro</button>`)+`
 <div class="round-banner"><div><small>RODADA</small><br><strong>${state.combat.round}</strong></div><div class="grow"><small>TURNO ATUAL</small><br><b>${esc(active?.name||'Nenhum combate ativo')}</b></div><button class="btn" data-action="prev-turn" ${!fighters.length?'disabled':''}>← Anterior</button><button class="btn gold" data-action="next-turn" ${!fighters.length?'disabled':''}>Próximo turno →</button></div>
-${fighters.length?`<div class="combat-layout"><section class="panel tight"><div class="split"><h3 style="margin:0">Iniciativa</h3><button class="btn sm ghost" data-action="roll-all">Rolar NPCs</button></div><p class="caption">Clique num participante para editar.</p><div class="roster">${fighters.map((f,i)=>`<button class="roster-item ${focused?.id===f.id?'selected':''}" data-action="focus-combat" data-id="${esc(f.id)}"><span class="init">${esc(f.initiative)}</span><span class="who"><b>${i===state.combat.turn?'▶ ':''}${esc(f.name)}</b><small>${f.isPlayer?'Personagem':'Monstro'} • ${f.hp}/${f.maxHp} PV</small><div class="hpbar"><span class="${f.hp/f.maxHp<.3?'low':''}" style="width:${clamp((f.hp/Math.max(f.maxHp,1))*100,0,100)}%"></span></div></span></button>`).join('')}</div><div class="hr"></div><button class="btn sm danger full" data-action="clear-combat">Encerrar combate</button></section>
+${fighters.length?`<div class="combat-layout"><section class="panel tight"><div class="split"><h3 style="margin:0">Iniciativa</h3><button class="btn sm ghost" data-action="roll-all">Rolar NPCs</button></div><p class="caption">Clique num participante para editar.</p><div class="roster">${fighters.map((f,i)=>`<button class="roster-item ${focused?.id===f.id?'selected':''}" data-action="focus-combat" data-id="${esc(f.id)}"><span class="init">${esc(f.initiative)}</span><span class="who"><b>${i===state.combat.turn?'▶ ':''}${esc(f.name)}</b><small>${f.isPlayer?'Personagem':'Monstro'} • ${f.hp}/${f.maxHp} PV</small>${healthBar(f)}</span></button>`).join('')}</div><div class="hr"></div><button class="btn sm danger full" data-action="clear-combat">Encerrar combate</button></section>
 <section class="panel combat-stat">${focused?.monsterId?creaturePortrait(getMonster(focused.monsterId)):""}${focused?.isPlayer?playerBlock(focused):statBlock(getMonster(focused.monsterId))}</section>
 ${combatControl(focused,active)}</div>`:`<div class="empty"><div class="symbol">⚔</div><h3>Sua mesa aguarda os aventureiros</h3><p>Monte um encontro e envie os monstros para esta mesa, ou adicione personagens manualmente.</p><div class="actions" style="justify-content:center"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn outline" data-action="add-player">+ Personagem</button></div></div>`}`}
 function playerBlock(f){return `<div class="statblock"><div class="eyebrow">PERSONAGEM DO GRUPO</div><h2>${esc(f.name)}</h2><div class="subline">Participante cadastrado manualmente</div><div class="basicstats"><div><small>INICIATIVA</small><b>${esc(f.initiative)}</b></div><div><small>PONTOS DE VIDA</small><b>${esc(f.hp)}</b></div><div><small>PV MÁXIMO</small><b>${esc(f.maxHp)}</b></div></div><p>É possível controlar a iniciativa e os PV dos personagens agora. As fichas completas dos jogadores ficarão para a próxima fase do aplicativo.</p></div>`}
@@ -223,6 +223,19 @@ function parseEntries(t){return String(t||'').split('\n').map(x=>x.trim()).filte
 function action(name,id,button){switch(name){
 case 'close':closeModal();return;
 case 'details':monsterModal(id);return;
+case 'set-monster-image':{
+ const m=getMonster(id);if(!m)return;
+ const raw=prompt('Cole um endereço HTTPS de imagem da criatura (somente arte com permissão de uso):',artworkURL(m));
+ if(raw===null)return;
+ const value=String(raw).trim();
+ if(value&&!value.startsWith('https://')){toast('Informe uma URL HTTPS para a imagem.',true);return}
+ state.creatureImages[id]=value;
+ localSave();monsterModal(id);toast(value?'Imagem associada à criatura':'Imagem removida');return;
+}
+case 'remove-monster-image':{
+ delete state.creatureImages[id];localSave();monsterModal(id);toast('Imagem removida');return;
+}
+
 case 'add-encounter':{const old=state.encounter.find(x=>x.id===id);if(old)old.qty+=1;else state.encounter.push({id,qty:1});localSave();toast(getMonster(id)?.name+' adicionado ao encontro');if(view==='builder')render();return;}
 case 'dec-encounter':{const it=state.encounter.find(x=>x.id===id);if(it){it.qty--;if(it.qty<=0)state.encounter=state.encounter.filter(x=>x.id!==id)}save();return;}
 case 'clear-encounter':if(confirm('Limpar todas as criaturas do encontro?')){state.encounter=[];save()}return;
@@ -245,8 +258,35 @@ case 'prev-turn':{if(!state.combat.list.length)return;state.combat.turn--;if(sta
 case 'clear-combat':if(confirm('Encerrar o combate e remover todos os participantes?')){state.combat={list:[],round:1,turn:0};selectedId=null;save()}return;
 case 'roll-all':{const active=state.combat.list[state.combat.turn]?.id;state.combat.list.forEach(f=>{if(!f.isPlayer){f.initiative=roll()+Number(getMonster(f.monsterId)?.initiative_modifier||0)}});sortFighters();state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));save();return}
 case 'roll-fighter':{const f=currentFighter();if(f){f.initiative=roll()+Number(f.isPlayer?0:getMonster(f.monsterId)?.initiative_modifier||0);selectedId=f.id;const active=state.combat.list[state.combat.turn]?.id;sortFighters();state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));save()}return}
-case 'save-fighter':{const f=currentFighter();if(!f)return;const active=state.combat.list[state.combat.turn]?.id;f.name=el('fighterName').value.trim().slice(0,100)||f.name;f.maxHp=Math.max(1,Number(el('fighterMaxHP').value)||1);f.hp=clamp(el('fighterHP').value,0,f.maxHp);f.initiative=Number(el('fighterInit').value)||0;f.notes=el('fighterNotes').value.slice(0,3000);selectedId=f.id;sortFighters();state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));save();toast('Participante atualizado');return}
-case 'damage':case 'heal':{const f=currentFighter();if(!f)return;const n=clamp(el('damageAmount').value,0,99999);f.hp=clamp(f.hp+(name==='damage'? -n:n),0,f.maxHp);selectedId=f.id;save();return}
+case 'save-fighter':{
+ const f=currentFighter();if(!f)return;
+ const active=state.combat.list[state.combat.turn]?.id;
+ f.name=el('fighterName').value.trim().slice(0,100)||f.name;
+ f.maxHp=Math.max(1,Number(el('fighterMaxHP').value)||1);
+ f.hp=clamp(el('fighterHP').value,0,f.maxHp);
+ f.tempHp=clamp(el('fighterTempHP').value,0,99999);
+ f.initiative=Number(el('fighterInit').value)||0;
+ f.notes=el('fighterNotes').value.slice(0,3000);
+ selectedId=f.id;sortFighters();
+ state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));
+ save();toast('Participante atualizado');return;
+}
+case 'quick-hp':{
+ const f=currentFighter();if(!f)return;
+ const amount=Number(button?.dataset?.amount);
+ if(!Number.isFinite(amount)||amount===0||Math.abs(amount)>1000)return;
+ changeHitPoints(f,amount);return;
+}
+case 'undo-hp':{
+ const f=currentFighter(),previous=ui.lastHp;
+ if(!f||!previous||previous.fighterId!==f.id)return;
+ f.hp=previous.hp;f.tempHp=previous.tempHp;ui.lastHp=null;selectedId=f.id;save();return;
+}
+case 'damage':case 'heal':{
+ const f=currentFighter();if(!f)return;
+ const n=clamp(el('damageAmount').value,0,99999);if(!n)return;
+ changeHitPoints(f,name==='damage'?-n:n);return;
+}
 case 'toggle-condition':{const f=currentFighter(),c=button.dataset.condition;if(!f||!CONDITIONS.includes(c))return;if(f.conditions.includes(c))f.conditions=f.conditions.filter(x=>x!==c);else f.conditions.push(c);selectedId=f.id;save();return}
 case 'remove-fighter':{const f=currentFighter();if(f&&confirm('Remover '+f.name+' do combate?')){const active=state.combat.list[state.combat.turn]?.id;state.combat.list=state.combat.list.filter(x=>x.id!==f.id);state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));selectedId=null;save()}return}
 case 'new-campaign':campaignModal();return;
