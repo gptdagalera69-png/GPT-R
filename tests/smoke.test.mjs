@@ -59,7 +59,6 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
   await click('action','focus-combat',firstId);
   assert.match(get('view'),/Dano rápido/);
   assert.match(get('view'),/Cura rápida/);
-  assert.match(get('view'),/conditions-grid/);
   assert.match(get('view'),/tactical-sheet-body/);
   const originalHP=stateBefore.combat.list[0].hp;
   await click('action','quick-hp',null,{amount:'-5'});
@@ -68,14 +67,17 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
   await click('action','undo-hp');
   stateAfter=JSON.parse(db.get('central-mestre-state-v2'));
   assert.equal(stateAfter.combat.list[0].hp,originalHP);
-  await click('action','toggle-condition',null,{condition:'Paralisado'});
-  assert.ok(JSON.parse(db.get('central-mestre-state-v2')).combat.list[0].conditions.includes('Paralisado'));
   let beforeAdd=JSON.parse(db.get('central-mestre-state-v2'));
   const activeBeforeAdd=beforeAdd.combat.list[beforeAdd.combat.turn].id;
   await click('action','add-combat','srd:goblin');
   let afterAdd=JSON.parse(db.get('central-mestre-state-v2'));
   assert.equal(afterAdd.combat.list[afterAdd.combat.turn].id,activeBeforeAdd);
   const firstTwo=afterAdd.combat.list.slice(0,2).map(f=>f.id);
+  await click('action','toggle-combat-sheet',firstTwo[0]);
+  await click('action','toggle-combat-sheet',firstTwo[1]);
+  assert.ok((get('view').match(/class="tactical-fighter is-open/g)||[]).length>=2);
+  assert.doesNotMatch(get('view'),/Condição em grupo/);
+  assert.doesNotMatch(get('view'),/conditions-grid/);
   await click('action','toggle-batch-target',firstTwo[0]);
   await click('action','toggle-batch-target',firstTwo[1]);
   document.getElementById('batchAmount').value='4';
