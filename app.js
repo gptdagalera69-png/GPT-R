@@ -321,15 +321,11 @@ function advanceEffects(f){
 }
 function combatControl(f,active){
  if(!f)return '';
- const pct=percentHP(f),temp=Math.max(0,Number(f.tempHp)||0),numberConditions=f.conditions?.length||0;
+ const pct=percentHP(f),temp=Math.max(0,Number(f.tempHp)||0);
  const conditionStatus=pct<=0?'Sem PV':pct<=25?'Crítico':pct<=55?'Ferido':'Estável';
  const statusColor=pct<=25?'#ffa199':pct<=55?'#ffd08f':'#a7e6bd';
  const buttons=(values,positive)=>values.map(n=>
   '<button type="button" data-action="quick-hp" data-amount="'+(positive?n:-n)+'" aria-label="'+(positive?'Curar ':'Aplicar ')+n+(positive?' pontos de vida':' pontos de dano')+'">'+(positive?'+':'−')+n+'</button>').join('');
- const tiles=CONDITIONS.map(c=>{
-  const on=f.conditions?.includes(c)||false;
-  return '<button type="button" class="condition-tile'+(on?' on':'')+'" data-action="toggle-condition" data-condition="'+esc(c)+'" aria-pressed="'+on+'"><span class="condition-indicator" aria-hidden="true">'+(on?'✓':'')+'</span>'+esc(c)+'</button>';
- }).join('');
  return [
   '<section class="panel tight combat-control" aria-label="Controle de combate">',
   '<div class="split"><h3 style="margin:0">Controle de combate</h3><span class="pill '+(f.id===active?.id?'red':'blue')+'">'+(f.id===active?.id?'Turno atual':'Selecionado')+'</span></div>',
@@ -367,11 +363,6 @@ function combatControl(f,active){
     '<label>Iniciativa<input class="field" id="fighterInit" type="number" inputmode="numeric" value="'+esc(f.initiative)+'"></label>',
   '</div>',
   '<div class="action-row" style="margin-top:10px"><button class="btn" data-action="roll-fighter">🎲 Rolar iniciativa</button><button class="btn gold" data-action="save-fighter">Salvar valores</button></div>',
-  '<div class="hr"></div>',
-  '<div class="split"><h3 style="margin:0">Condições</h3><span class="pill '+(numberConditions?'red':'green')+'">'+numberConditions+' ativas</span></div>',
-  '<p class="caption" style="margin:9px 0">Toque para marcar ou remover. As durações continuam sob controle do mestre.</p>',
-  '<div class="conditions conditions-grid">'+tiles+'</div>',
-  '<div class="condition-counter" aria-live="polite">'+(numberConditions?'Condições aplicadas: '+esc(f.conditions.join(', ')):'Sem condições registradas.')+'</div>',
   '<label class="form-label" for="fighterNotes">Anotações do mestre</label>',
   '<textarea class="textarea" id="fighterNotes" placeholder="Concentração, recargas, efeitos...">'+esc(f.notes||'')+'</textarea>',
   '<div class="action-row" style="margin-top:9px"><button class="btn gold" data-action="save-fighter">Salvar anotações</button><button class="btn danger" data-action="remove-fighter">Remover participante</button></div>',
@@ -404,14 +395,13 @@ function combatHistory(){
 function tacticalFighterCard(f,i,active){
  const open=combatOpenIds().includes(f.id),targeted=combatTargetIds().includes(f.id),m=f.monsterId?getMonster(f.monsterId):null;
  const temp=Math.max(0,Number(f.tempHp)||0);
- const stateLabel=percentHP(f)<=0?'Sem PV':percentHP(f)<=25?'Crítico':percentHP(f)<=55?'Ferido':'Estável';
  return `<article class="tactical-fighter ${open?'is-open':''} ${targeted?'is-targeted':''} ${f.id===active?.id?'is-current':''}" data-fighter-id="${esc(f.id)}">
    <div class="tactical-fighter-head">
     <button class="tactical-target-toggle ${targeted?'on':''}" data-action="toggle-batch-target" data-id="${esc(f.id)}" aria-pressed="${targeted}" title="Selecionar para alterações em grupo"><span>${targeted?'✓':'○'}</span><small>ALVO</small></button>
     <div class="tactical-avatar">${m?creaturePortrait(m):'<span class="avatar-player">⚔</span>'}</div>
     <button class="tactical-identity" data-action="focus-combat" data-id="${esc(f.id)}" aria-label="Editar ${esc(f.name)}">
       <span class="tactical-name">${f.id===active?.id?'▶ ':''}${esc(f.name)}</span>
-      <span class="tactical-meta">INI ${esc(f.initiative)} · ${f.isPlayer?'Personagem':'ND '+esc(m?.cr||'—')} · ${stateLabel}</span>
+      <span class="tactical-meta">INI ${esc(f.initiative)} · ${f.isPlayer?'Personagem':'ND '+esc(m?.cr||'—')}</span>
       <span class="tactical-hp-line"><b>${f.hp}/${f.maxHp} PV</b>${temp?' · +'+temp+' temp':''}</span>
       ${healthBar(f)}
     </button>
@@ -428,19 +418,18 @@ function tacticalFighterCard(f,i,active){
     <button class="heal" data-action="sheet-hp" data-id="${esc(f.id)}" data-amount="5">+5</button>
     <button class="heal" data-action="sheet-hp" data-id="${esc(f.id)}" data-amount="10">+10</button>
    </div>
-   ${open?`<div class="tactical-sheet-body"><div class="tactical-sheet-status"><span>PV <b>${f.hp}/${f.maxHp}</b></span><span>CA <b>${esc(m?.armor_class||'—')}</b></span><span>INI <b>${esc(f.initiative)}</b></span><span>Condições <b>${f.conditions?.length||0}</b></span></div>${f.isPlayer?playerBlock(f):statBlock(m)}</div>`:''}
+   ${open?`<div class="tactical-sheet-body"><div class="tactical-sheet-status"><span>PV <b>${f.hp}/${f.maxHp}</b></span><span>CA <b>${esc(m?.armor_class||'—')}</b></span><span>INI <b>${esc(f.initiative)}</b></span><span>PV Temp. <b>${temp}</b></span></div>${f.isPlayer?playerBlock(f):statBlock(m)}</div>`:''}
   </article>`;
 }
 function combatBatchToolbar(fighters){
  const selected=combatTargetIds(),amount=Math.max(1,Number(ui.batchAmount)||8);
- const condition=ui.batchCondition&&CONDITIONS.includes(ui.batchCondition)?ui.batchCondition:CONDITIONS[0];
  return `<section class="panel tactical-batch-panel">
    <div class="tactical-batch-top"><div><div class="eyebrow">CONTROLE EM GRUPO</div><h3>Dano em área e alterações simultâneas</h3><p>Selecione os alvos nas fichas. Ex.: Bola de Fogo — aplique o dano total aos que falharam e metade aos que passaram.</p></div><span class="tactical-selected-count"><b>${selected.length}</b> selecionado(s)</span></div>
    <div class="tactical-batch-grid">
     <div class="tactical-batch-block"><label for="batchAmount">PV por alvo</label><input id="batchAmount" class="field" type="number" min="1" max="99999" inputmode="numeric" value="${amount}"><div class="tactical-batch-actions"><button class="btn danger" data-action="batch-damage" ${!selected.length?'disabled':''}>− Dano total</button><button class="btn danger outline" data-action="batch-half-damage" ${!selected.length?'disabled':''}>− Metade</button><button class="btn gold" data-action="batch-heal" ${!selected.length?'disabled':''}>+ Cura</button><button class="btn ghost" data-action="undo-batch-hp" ${ui.lastBatchHp?.length?'':'disabled'}>↶ Desfazer grupo</button></div></div>
-    <div class="tactical-batch-block"><label for="batchCondition">Condição em grupo</label><select id="batchCondition" class="select">${CONDITIONS.map(c=>`<option value="${esc(c)}" ${condition===c?'selected':''}>${esc(c)}</option>`).join('')}</select><div class="tactical-batch-actions"><button class="btn outline" data-action="batch-add-condition" ${!selected.length?'disabled':''}>Aplicar condição</button><button class="btn ghost" data-action="batch-remove-condition" ${!selected.length?'disabled':''}>Remover condição</button></div></div>
+
    </div>
-   <div class="tactical-batch-footer"><button class="btn ghost" data-action="batch-select-all">Selecionar todos</button><button class="btn ghost" data-action="batch-select-monsters">Só monstros</button><button class="btn ghost" data-action="batch-select-players">Só personagens</button><button class="btn ghost" data-action="batch-clear">Limpar seleção</button><button class="btn outline" data-action="batch-open-selected" ${!selected.length?'disabled':''}>Abrir fichas selecionadas</button><button class="btn outline" data-action="combat-open-all">Abrir todas</button><button class="btn ghost" data-action="combat-collapse-all">Recolher todas</button></div>
+   <div class="tactical-batch-footer"><button class="btn ghost" data-action="batch-select-all">Selecionar todos</button><button class="btn ghost" data-action="batch-select-monsters">Só monstros</button><button class="btn ghost" data-action="batch-select-players">Só personagens</button><button class="btn ghost" data-action="batch-clear">Limpar seleção</button><button class="btn outline" data-action="batch-open-selected" ${!selected.length?'disabled':''}>Abrir fichas selecionadas</button><button class="btn outline" data-action="combat-open-all">Abrir todas as fichas</button><button class="btn ghost" data-action="combat-collapse-all">Fechar todas as fichas</button></div>
   </section>`;
 }
 function combat(){
@@ -451,7 +440,7 @@ function combat(){
  return pageHeader('SESSÃO EM ANDAMENTO','Mesa de combate','Fichas compactas completas, múltiplas fichas abertas e alterações em grupo sem perder a visão da batalha.',`<button class="btn outline" data-action="add-player">+ Personagem</button><button class="btn" data-view="bestiary">+ Monstro</button>`)+`
  <div class="round-banner atlas-turn-bar tactical-turn-bar"><div><small>RODADA</small><br><strong>${state.combat.round}</strong></div><div class="grow"><small>TURNO ATUAL</small><br><b>${esc(active?.name||'Nenhum combate ativo')}</b></div><button class="btn" data-action="prev-turn" ${!fighters.length?'disabled':''}>← Anterior</button><button class="btn gold" data-action="next-turn" ${!fighters.length?'disabled':''}>Próximo turno →</button></div>
  ${fighters.length?`${combatBatchToolbar(fighters)}
- <div class="tactical-board-head"><div><div class="eyebrow">MAPA TÁTICO</div><h2>${fighters.length} participante${fighters.length===1?'':'s'}</h2></div><div class="actions"><button class="btn outline" data-action="roll-all">🎲 Rolar NPCs</button><button class="btn danger" data-action="clear-combat">Encerrar combate</button></div></div>
+ <div class="tactical-board-head"><div><div class="eyebrow">MAPA TÁTICO</div><h2>${fighters.length} participante${fighters.length===1?'':'s'}</h2><p class="caption">${combatOpenIds().length} ficha${combatOpenIds().length===1?'':'s'} aberta${combatOpenIds().length===1?'':'s'} ao mesmo tempo</p></div><div class="actions"><button class="btn outline" data-action="roll-all">🎲 Rolar NPCs</button><button class="btn danger" data-action="clear-combat">Encerrar combate</button></div></div>
  <section class="tactical-board">${fighters.map((f,i)=>tacticalFighterCard(f,i,active)).join('')}</section>
  ${focused?`<section class="tactical-inspector"><div class="tactical-inspector-head"><div><div class="eyebrow">EDIÇÃO INDIVIDUAL</div><h2>${esc(focused.name)}</h2></div><button class="btn ghost" data-action="collapse-combat">✕ Fechar controles</button></div>${combatControl(focused,active)}</section>`:''}
  ${diceTools()}${combatHistory()}`:`<div class="empty"><div class="symbol">⚔</div><h3>Sua mesa aguarda os aventureiros</h3><p>Monte um encontro e envie os monstros para esta mesa, ou adicione personagens manualmente.</p><div class="actions" style="justify-content:center"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn outline" data-action="add-player">+ Personagem</button></div></div>`}
@@ -537,7 +526,7 @@ case 'party-add':if(state.party.length<12){state.party.push(state.party.at(-1)||
 case 'party-remove':if(state.party.length>1){state.party.pop();save()}return;
 case 'generate-suggestions':if(el('suggestionContainer'))el('suggestionContainer').innerHTML=suggestionsMarkup();return;
 case 'start-combat':{const valid=state.encounter.filter(x=>getMonster(x.id));let amount=valid.reduce((n,x)=>n+x.qty,0);if(!amount){toast('Adicione criaturas válidas ao encontro',true);return}if(amount>35){toast('Máximo de 35 participantes por envio',true);return}const hadCombat=state.combat.list.length>0;if(hadCombat&&!confirm('Adicionar os novos monstros ao combate atual?'))return;for(const x of valid){const m=getMonster(x.id);for(let i=0;i<x.qty;i++)addFighter(m)}selectedId=null;if(!hadCombat){state.combat.turn=0;state.combat.round=1}localSave();closeModal();go('combat');return}
-case 'focus-combat':selectedId=id;setCombatOpen(id,true);render();return;
+case 'focus-combat':selectedId=id;render();return;
 case 'collapse-combat':selectedId=null;render();return;
 case 'toggle-combat-sheet':{const open=combatOpenIds().includes(id);setCombatOpen(id,!open);render();return}
 case 'combat-open-all':ui.combatOpenIds=state.combat.list.map(f=>f.id);render();return;
@@ -567,13 +556,6 @@ case 'undo-batch-hp':{
  let restored=0;
  ui.lastBatchHp.forEach(snap=>{const f=state.combat.list.find(x=>x.id===snap.id);if(f){f.hp=snap.hp;f.tempHp=snap.tempHp;restored++}});
  ui.lastBatchHp=null;addCombatLog('Alteração em grupo desfeita para '+restored+' alvo(s).');localSave();render();toast('Alteração em grupo desfeita');return;
-}
-case 'batch-add-condition':case 'batch-remove-condition':{
- const c=String(el('batchCondition')?.value||'');if(!CONDITIONS.includes(c))return;ui.batchCondition=c;
- const targets=combatTargetIds().map(fid=>state.combat.list.find(f=>f.id===fid)).filter(Boolean);
- if(!targets.length){toast('Selecione ao menos um alvo.',true);return}
- targets.forEach(f=>{const set=new Set(f.conditions||[]);name==='batch-add-condition'?set.add(c):set.delete(c);f.conditions=[...set]});
- addCombatLog(c+' '+(name==='batch-add-condition'?'aplicada':'removida')+' em '+targets.length+' alvo(s).');localSave();render();toast('Condição atualizada em '+targets.length+' alvo(s)');return;
 }
 case 'add-player':playerModal();return;
 case 'next-turn':{if(!state.combat.list.length)return;advanceEffects(state.combat.list[state.combat.turn]);addCombatLog('Fim do turno de '+state.combat.list[state.combat.turn]?.name+'.');state.combat.turn++;if(state.combat.turn>=state.combat.list.length){state.combat.turn=0;state.combat.round++}selectedId=null;save();return}
@@ -625,7 +607,6 @@ case 'toggle-concentration':{
  const f=currentFighter();if(!f)return;
  f.concentrating=!f.concentrating;addCombatLog(f.name+(f.concentrating?' iniciou':' encerrou')+' concentração.');save();return;
 }
-case 'toggle-condition':{const f=currentFighter(),c=button.dataset.condition;if(!f||!CONDITIONS.includes(c))return;if(f.conditions.includes(c))f.conditions=f.conditions.filter(x=>x!==c);else f.conditions.push(c);addCombatLog(f.name+': condição '+c+' '+(f.conditions.includes(c)?'aplicada':'removida')+'.');selectedId=f.id;save();return}
 case 'remove-fighter':{const f=currentFighter();if(f&&confirm('Remover '+f.name+' do combate?')){const active=state.combat.list[state.combat.turn]?.id;state.combat.list=state.combat.list.filter(x=>x.id!==f.id);state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));selectedId=null;save()}return}
 case 'new-campaign':campaignModal();return;
 case 'edit-campaign':campaignModal(id);return;
