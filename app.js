@@ -44,19 +44,85 @@ function speed(m){const sp=m?.stat_block_json?.speed||{};return Object.entries(s
 function budget(){return [0,1,2].map(i=>state.party.reduce((sum,lv)=>sum+BUDGET[lv-1][i],0))}
 function groupXp(){return state.encounter.reduce((sum,x)=>sum+xp(getMonster(x.id))*x.qty,0)}
 function difficulty(x,b=budget()){return x<=0?'Sem criaturas':x<=b[0]?'Baixa':x<=b[1]?'Moderada':x<=b[2]?'Alta':'Acima de alta'}
-function go(to){view=to;filter.page=1;window.scrollTo({top:0,behavior:'instant'});render()}
+
+function setMenu(open){
+ const nav=el('sideNav'),backdrop=el('navBackdrop');
+ if(!nav||!backdrop)return;
+ nav.classList.toggle('mobile-open',!!open);
+ backdrop.hidden=!open;
+ document.body?.classList?.toggle('nav-open',!!open);
+}
+function go(to){if(!['dashboard','bestiary','builder','combat','campaigns','settings'].includes(to))return;setMenu(false);view=to;filter.page=1;window.scrollTo({top:0,behavior:'instant'});render()}
 function pageHeader(kicker,title,subtitle,buttons=''){return `<div class="eyebrow">${esc(kicker)}</div><div class="section-header" style="margin-top:0"><div><h1>${esc(title)}</h1><p>${esc(subtitle)}</p></div><div class="actions">${buttons}</div></div>`}
 function footer(){return `<div class="footnote">D&D System Reference Document 5.2.1 © Wizards of the Coast LLC — <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Dados estruturados republicados via <a href="https://github.com/adkinn/srd-5.2.1" target="_blank" rel="noopener">Open5e/adkinn</a>. Interface e fichas disponíveis em PT-BR após preparação estática do bestiário. Tradução não oficial, sem serviços de tradução no navegador. <a href="https://www.dndbeyond.com/sources/dnd/srd-5.2.1" target="_blank" rel="noopener">Fonte oficial</a>. Balanceamento é uma estimativa, não uma garantia.</div>`}
 function navbar(){if(document.body)document.body.dataset.section=view;const names={dashboard:'Visão geral',bestiary:'Bestiário',builder:'Criador de encontros',combat:'Mesa de combate',campaigns:'Campanhas',settings:'Configurações'};el('currentCrumb').textContent=names[view];document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));el('countMonsters').textContent=allMonsters().length;cloudStatus();}
 function render(){navbar();const content={dashboard:dashboard,bestiary:bestiary,builder:builder,combat:combat,campaigns:campaigns,settings:settings};el('view').innerHTML=(content[view]||dashboard)()+footer();}
-function dashboard(){const camps=state.campaigns.length,active=state.combat.list.length,qty=state.encounter.reduce((x,i)=>x+i.qty,0);
-return `<div class="hero"><div class="eyebrow">SUA MESA, SEU DOMÍNIO</div><h1>Bem-vindo à sua<br>Central do Mestre.</h1><p>Tudo o que você precisa para encontrar criaturas, montar encontros equilibrados e conduzir combates sem interromper a aventura.</p><div class="actions"><button class="btn gold" data-view="bestiary">♜ Explorar bestiário →</button><button class="btn outline" data-view="combat">⚔ Abrir combate</button></div></div>
-<div class="grid stats"><div class="stat-card"><span class="stat-icon">♜</span><small>CRIATURAS DISPONÍVEIS</small><strong>${fmt(allMonsters().length)}</strong><em>Fichas SRD + personalizadas</em></div><div class="stat-card"><span class="stat-icon">⚔</span><small>ENCONTRO PREPARADO</small><strong>${qty}</strong><em>Inimigos na seleção</em></div><div class="stat-card"><span class="stat-icon">✧</span><small>EM COMBATE</small><strong>${active}</strong><em>Combatentes individuais</em></div><div class="stat-card"><span class="stat-icon">▦</span><small>SUAS CAMPANHAS</small><strong>${camps}</strong><em>Campanhas organizadas</em></div></div>
-<div class="cols2"><section class="panel"><h3>Comece de onde parou</h3>
-<div class="feature"><span>♜</span><div><b>Bestiário completo</b><small>Busque por nome, ND e tipo. Consulte ataques, características e resistências.</small></div><button class="btn sm" data-view="bestiary">Abrir →</button></div>
-<div class="feature"><span>⚔</span><div><b>Encontros inteligentes</b><small>Calcule os orçamentos de XP para grupos com níveis diferentes.</small></div><button class="btn sm" data-view="builder">Preparar →</button></div>
-<div class="feature"><span>✧</span><div><b>Mesa de combate</b><small>Iniciativa, turnos, rodada, PV individuais e condições.</small></div><button class="btn sm" data-view="combat">Controlar →</button></div></section>
-<section class="panel"><h3>Resumo da sua mesa</h3><p>Grupo atual: <b>${state.party.length} aventureiros</b>, níveis ${state.party.join(', ')}.</p><p>Encontro preparado: <b>${fmt(groupXp())} XP</b>, dificuldade <span class="pill gold">${difficulty(groupXp())}</span>.</p><p>Rodada do combate: <b>${state.combat.round}</b>.</p><div class="hr"></div><div class="notice info">As criaturas desta biblioteca são do SRD revisado de D&D (2024/2025). Materiais comerciais e homebrews devem ser adicionados separadamente e com autorização de uso.</div><div class="actions"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn" data-action="backup">Exportar meus dados</button></div></section></div>`}
+
+function uiIcon(key){
+ const name=['home','beast','swords','dice','book','gear','search','shield','people','arrow'].includes(key)?key:'shield';
+ return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/assets/atlas-icons.svg#'+name+'"></use></svg>';
+}
+function dashboard(){
+ const camps=state.campaigns.length;
+ const active=state.combat.list.length;
+ const qty=state.encounter.reduce((x,i)=>x+i.qty,0);
+ const specs=[
+  {type:'creatures',target:'bestiary',icon:'beast',label:'CRIATURAS DISPONÍVEIS',value:fmt(allMonsters().length),meta:'Fichas SRD + personalizadas'},
+  {type:'encounters',target:'builder',icon:'swords',label:'ENCONTRO PREPARADO',value:fmt(qty),meta:'Criaturas na sua seleção'},
+  {type:'battle',target:'combat',icon:'dice',label:'EM COMBATE',value:fmt(active),meta:'Combatentes na iniciativa'},
+  {type:'stories',target:'campaigns',icon:'book',label:'SUAS CAMPANHAS',value:fmt(camps),meta:'Mundos e aventuras'}
+ ];
+ const feature=(target,icon,title,summary,button)=>`<div class="atlas-feature">
+   <div class="feature-symbol">${uiIcon(icon)}</div>
+   <div class="feature-content"><b>${esc(title)}</b><small>${esc(summary)}</small></div>
+   <button class="btn sm feature-button" type="button" data-view="${target}">${esc(button)} ${uiIcon('arrow')}</button>
+ </div>`;
+ return `<div class="atlas-home">
+   <section class="atlas-hero" aria-labelledby="atlas-hero-title">
+     <div class="hero-scene" aria-hidden="true"></div>
+     <div class="hero-copy">
+      <div class="atlas-kicker"><span class="ornament">✣</span><span>CENTRAL DO MESTRE</span><span class="kicker-line"></span></div>
+      <h1 id="atlas-hero-title">Bem-vindo à sua<br><span>Central do Mestre.</span></h1>
+      <p>Crie mundos, encontre criaturas e conduza aventuras inesquecíveis com suas ferramentas de mestre reunidas em um só lugar.</p>
+      <div class="atlas-hero-actions">
+       <button class="btn atlas-primary" data-view="bestiary" type="button">${uiIcon('beast')} Explorar bestiário ${uiIcon('arrow')}</button>
+       <button class="btn atlas-secondary" data-view="builder" type="button">${uiIcon('swords')} Criar encontro</button>
+      </div>
+     </div>
+     <div class="hero-quote" aria-hidden="true"><span>“Grandes histórias<br>começam com um<br>bom Mestre.”</span><small>✦ ━ ✦</small></div>
+   </section>
+   <div class="grid stats atlas-stats" aria-label="Resumo das ferramentas">
+    ${specs.map(x=>`<button class="atlas-stat atlas-stat--${x.type}" type="button" data-view="${x.target}" aria-label="${esc(x.label+', '+x.value+'. Abrir '+x.target)}">
+      <div class="atlas-stat-top"><span class="atlas-stat-glyph">${uiIcon(x.icon)}</span><small>${esc(x.label)}</small></div>
+      <strong>${x.value}</strong>
+      <div class="atlas-stat-bottom"><span>${esc(x.meta)}</span><span class="stat-arrow">${uiIcon('arrow')}</span></div>
+    </button>`).join('')}
+   </div>
+   <div class="atlas-home-panels">
+     <section class="atlas-panel atlas-continue">
+       <div class="panel-title"><h2>Comece de onde parou</h2><span class="panel-line">✣</span></div>
+       ${feature('bestiary','beast','Bestiário completo','Pesquise por nome, ND e tipo. Consulte atributos, ataques e resistências.','Abrir')}
+       ${feature('builder','swords','Criador de encontros','Prepare desafios e compare orçamentos de XP do seu grupo.','Preparar')}
+       ${feature('combat','dice','Mesa de combate','Controle iniciativas, PV, condições e rodadas em um só lugar.','Abrir')}
+       ${feature('campaigns','book','Suas campanhas','Organize histórias e anotações para a próxima sessão.','Explorar')}
+     </section>
+     <section class="atlas-panel atlas-summary">
+       <div class="panel-title"><h2>Resumo da sua mesa</h2><small>D&D 5.5e • SRD 5.2.1</small></div>
+       <div class="summary-list">
+         <p>Grupo atual: <strong>${state.party.length} aventureiros</strong>, níveis ${esc(state.party.join(', '))}.</p>
+         <p>Encontro preparado: <strong>${fmt(groupXp())} XP</strong> <span class="pill gold">${difficulty(groupXp())}</span></p>
+         <p>Rodada do combate: <strong>${state.combat.round}</strong></p>
+       </div>
+       <div class="summary-notice">${uiIcon('shield')}<p>As fichas são baseadas no SRD 5.2.1. Revise a dificuldade antes de iniciar um combate.</p></div>
+       <div class="summary-actions">
+        <button class="btn gold" data-view="combat">Retomar combate ${uiIcon('arrow')}</button>
+        <button class="btn" data-action="backup">Exportar backup</button>
+       </div>
+       <div class="summary-license">Seu grimório de mesa • Dados salvos automaticamente</div>
+     </section>
+   </div>
+  </div>`;
+}
 
 const CREATURE_ICONS=['aberration','beast','celestial','construct','dragon','elemental','fey','fiend','giant','humanoid','monstrosity','ooze','plant','undead'];
 function artworkURL(m){
@@ -221,6 +287,10 @@ function campaignModal(id=null){const c=state.campaigns.find(x=>x.id===id);openM
 function playerModal(){openModal(`<div class="modal-top"><h2>Adicionar personagem</h2><button class="close" data-action="close">×</button></div><p>Cadastre os dados de combate do aventureiro. Fichas completas estarão disponíveis numa próxima etapa.</p><form id="playerForm"><div class="form-grid"><label>Nome<input class="field" name="name" required maxlength="90"></label><label>Iniciativa<input class="field" name="initiative" type="number" value="10"></label><label>PV máximo<input class="field" name="maxHp" type="number" min="1" value="30"></label><label>PV atual<input class="field" name="hp" type="number" min="0" value="30"></label></div><button type="submit" class="btn gold" style="margin-top:17px">Adicionar à iniciativa</button></form>`,false)}
 function parseEntries(t){return String(t||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const i=x.indexOf(':');return {name:i>=0?x.slice(0,i).trim():'Especial',description:i>=0?x.slice(i+1).trim():x}})}
 function action(name,id,button){switch(name){
+case 'toggle-menu':{
+ const nav=el('sideNav');
+ setMenu(!nav?.classList?.contains?.('mobile-open'));return;
+}
 case 'close':closeModal();return;
 case 'details':monsterModal(id);return;
 case 'set-monster-image':{
@@ -306,7 +376,17 @@ const d=new FormData(t);
 if(t.id==='campaignForm'){let c=state.campaigns.find(x=>x.id===d.get('cid'));if(!c){c={id:uid()};state.campaigns.push(c)}c.name=String(d.get('name')||'').trim().slice(0,100);c.description=String(d.get('description')||'').slice(0,2500);c.notes=String(d.get('notes')||'').slice(0,30000);c.date=new Date().toLocaleDateString('pt-BR');state.campaignId=c.id;closeModal();save();toast('Campanha salva');return}
 if(t.id==='playerForm'){const f={id:uid(),monsterId:null,name:String(d.get('name')).trim().slice(0,100),initiative:Number(d.get('initiative'))||0,maxHp:Math.max(1,Number(d.get('maxHp'))||1),hp:Math.max(0,Number(d.get('hp'))||0),conditions:[],notes:'',isPlayer:true};f.hp=Math.min(f.hp,f.maxHp);state.combat.list.push(f);sortFighters();selectedId=f.id;closeModal();localSave();go('combat');toast('Personagem na iniciativa');return}
 if(t.id==='monsterForm'){const s={};for(const k of ['str','dex','con','int','wis','cha'])s[k]=clamp(d.get(k),1,30);const cr=String(d.get('cr'));const hp=Math.max(1,Number(d.get('hp'))||1);const ms={id:'custom:'+uid(),name:String(d.get('name')).trim().slice(0,100),size:String(d.get('size')),type:String(d.get('type')),cr,cr_numeric:cr.includes('/')?Number(cr.split('/')[0])/Number(cr.split('/')[1]):Number(cr),hp_max:hp,hp_formula:'—',armor_class:Number(d.get('ac'))||10,initiative_modifier:Number(d.get('initiative'))||0,source:'personalizado',attribution:'Criatura personalizada pelo Mestre',stat_block_json:{schema_version:1,ability_scores:s,speed:{walk:Math.round(Number(d.get('speed'))/0.3)||30},traits:parseEntries(d.get('traits')),actions:parseEntries(d.get('actions'))}};state.customMonsters.push(ms);closeModal();save();toast('Monstro personalizado criado');return}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();go('bestiary');el('monsterSearch')?.focus()}});
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'){closeModal();setMenu(false)}
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();const field=el('globalSearch');if(field?.focus)field.focus();else{go('bestiary');el('monsterSearch')?.focus?.()}}
+});
+document.addEventListener('submit',e=>{
+ if(e.target?.id!=='globalSearchForm')return;
+ e.preventDefault();
+ filter.q=String(el('globalSearch')?.value||'').trim().slice(0,110);
+ filter.page=1;go('bestiary');
+});
+
 async function boot(){try{let d=null;
     try{
       const pt=await fetch('/data/monsters.pt-BR.json',{cache:'no-store'});
