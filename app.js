@@ -322,8 +322,6 @@ function advanceEffects(f){
 function combatControl(f,active){
  if(!f)return '';
  const pct=percentHP(f),temp=Math.max(0,Number(f.tempHp)||0);
- const conditionStatus=pct<=0?'Sem PV':pct<=25?'Crítico':pct<=55?'Ferido':'Estável';
- const statusColor=pct<=25?'#ffa199':pct<=55?'#ffd08f':'#a7e6bd';
  const buttons=(values,positive)=>values.map(n=>
   '<button type="button" data-action="quick-hp" data-amount="'+(positive?n:-n)+'" aria-label="'+(positive?'Curar ':'Aplicar ')+n+(positive?' pontos de vida':' pontos de dano')+'">'+(positive?'+':'−')+n+'</button>').join('');
  return [
@@ -332,7 +330,7 @@ function combatControl(f,active){
   '<label class="form-label" for="fighterName">Participante</label>',
   '<input id="fighterName" class="field wide" autocomplete="off" value="'+esc(f.name)+'">',
   '<div class="hp-console">',
-    '<div class="split"><span class="hp-title">PONTOS DE VIDA</span><span class="hp-status" style="color:'+statusColor+'">'+conditionStatus+'</span></div>',
+    '<div class="split"><span class="hp-title">PONTOS DE VIDA</span><span class="caption">PV atuais</span></div>',
     '<div class="hp-count" aria-live="polite"><strong>'+esc(f.hp)+'</strong><small>/ '+esc(f.maxHp)+' PV</small></div>',
     healthBar(f),
     '<div class="split" style="margin-top:9px"><span class="caption">Vida restante</span><strong class="caption">'+pct+'%</strong></div>',
