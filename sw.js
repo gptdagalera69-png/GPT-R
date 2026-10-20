@@ -1,4 +1,4 @@
-const CACHE='central-mestre-v14';
+const CACHE='central-mestre-v15';
 const SHELL=['/','/index.html','/styles.css','/theme-v2.css','/atlas-v3.css','/mestre-v35.css','/monster-art-v1.css','/ux-responsive-v1.css','/tactical-v2.css','/assets/creature-symbols.svg','/assets/atlas-logo.svg','/assets/hero-citadel.svg','/assets/atlas-icons.svg','/app.js','/sync.js','/manifest.webmanifest','/icon.svg','/data/monsters.json','/data/nomes-pt-BR.json'];
 
 self.addEventListener('install',e=>{
