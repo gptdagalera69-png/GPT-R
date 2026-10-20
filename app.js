@@ -152,7 +152,7 @@ function changeHitPoints(f,difference){
   }else{
     f.hp=clamp((Number(f.hp)||0)+difference,0,Math.max(1,Number(f.maxHp)||1));
   }
-  selectedId=f.id;save();
+  addCombatLog(f.name+' '+(difference<0?'sofreu '+(-difference)+' de dano':'recuperou '+difference+' PV')+'.');selectedId=f.id;save();
 }
 
 function monsterCard(m){return `<article class="monster-card"><div class="card-top"><div><div class="monster-meta"><div class="monster-glyph"><svg viewBox="0 0 240 240" aria-hidden="true"><use href="/assets/creature-symbols.svg#${esc(CREATURE_ICONS.includes(m.type)?m.type:'monstrosity')}"></use></svg></div><div><div class="eyebrow" style="font-size:9px;margin:0 0 9px">${esc(TYPE[m.type]||m.type)}</div><h3>${esc(titleOf(m))}</h3><p>${esc((SIZE[m.size]||m.size)+' • '+(m.source==='personalizado'?'Criação própria':'SRD 5.2.1'))}</p></div></div></div><span class="pill gold">ND ${esc(m.cr)}</span></div><div class="facts"><div><b>${esc(m.armor_class)}</b><small>CA</small></div><div><b>${esc(m.hp_max)}</b><small>PV</small></div><div><b>${fmt(xp(m))}</b><small>XP</small></div></div><div class="card-actions"><button class="btn sm" data-action="details" data-id="${esc(m.id)}">Ficha completa</button><button class="btn sm gold" data-action="add-encounter" data-id="${esc(m.id)}" title="Adicionar ao encontro">+ Encontro</button></div></article>`}
@@ -272,12 +272,34 @@ function combatControl(f,active){
  ].join('');
 }
 
+
+function diceRoll(expression){
+ const match=String(expression).trim().match(/^(\d{1,2})d(\d{1,3})(?:\s*([+-])\s*(\d{1,4}))?$/i);
+ if(!match)return null;
+ const count=Number(match[1]),sides=Number(match[2]),bonus=(match[3]==='-'?-1:1)*Number(match[4]||0);
+ if(count<1||count>40||sides<2||sides>100)return null;
+ const results=Array.from({length:count},()=>Math.floor(Math.random()*sides)+1);
+ return {total:results.reduce((a,b)=>a+b,0)+bonus,results,bonus};
+}
+function addCombatLog(message){
+ if(!Array.isArray(state.combat.log))state.combat.log=[];
+ state.combat.log.unshift({id:uid(),round:state.combat.round,at:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),message:String(message).slice(0,280)});
+ state.combat.log=state.combat.log.slice(0,120);
+}
+function diceTools(){
+ return '<section class="panel atlas-dice"><div class="split"><h3>Dados do Mestre</h3><span class="pill gold">Rolagens locais</span></div><div class="dice-buttons">'+[4,6,8,10,12,20,100].map(n=>'<button class="btn outline" data-action="roll-die" data-sides="'+n+'">d'+n+'</button>').join('')+'</div><div class="manual-hp"><input id="diceExpression" class="field" aria-label="Expressão de dados" placeholder="Ex.: 2d8+4" value="1d20"><button class="btn gold" data-action="roll-expression">Rolar</button></div><p class="caption">Resultados registrados no histórico do combate.</p></section>';
+}
+function combatHistory(){
+ const log=Array.isArray(state.combat.log)?state.combat.log:[];
+ return '<section class="panel atlas-history"><div class="split"><h3>Histórico da sessão</h3><button class="btn sm ghost" data-action="clear-log">Limpar</button></div>'+(log.length?'<ol class="combat-log">'+log.slice(0,30).map(x=>'<li><small>R'+esc(x.round)+' • '+esc(x.at)+'</small><span>'+esc(x.message)+'</span></li>').join('')+'</ol>':'<p class="caption">Danos, curas, turnos e rolagens aparecerão aqui.</p>')+'</section>';
+}
+
 function combat(){const fighters=state.combat.list;const active=fighters[state.combat.turn];if(selectedId&&!fighters.some(f=>f.id===selectedId))selectedId=null;const focused=fighters.find(f=>f.id===selectedId)||active;
 return pageHeader('SESSÃO EM ANDAMENTO','Mesa de combate','Iniciativa integrada, PV individuais, condições e controle de rodadas.',`<button class="btn outline" data-action="add-player">+ Personagem</button><button class="btn" data-view="bestiary">+ Monstro</button>`)+`
 <div class="round-banner"><div><small>RODADA</small><br><strong>${state.combat.round}</strong></div><div class="grow"><small>TURNO ATUAL</small><br><b>${esc(active?.name||'Nenhum combate ativo')}</b></div><button class="btn" data-action="prev-turn" ${!fighters.length?'disabled':''}>← Anterior</button><button class="btn gold" data-action="next-turn" ${!fighters.length?'disabled':''}>Próximo turno →</button></div>
 ${fighters.length?`<div class="combat-layout"><section class="panel tight"><div class="split"><h3 style="margin:0">Iniciativa</h3><button class="btn sm ghost" data-action="roll-all">Rolar NPCs</button></div><p class="caption">Clique num participante para editar.</p><div class="roster">${fighters.map((f,i)=>`<button class="roster-item ${focused?.id===f.id?'selected':''}" data-action="focus-combat" data-id="${esc(f.id)}"><span class="init">${esc(f.initiative)}</span><span class="who"><b>${i===state.combat.turn?'▶ ':''}${esc(f.name)}</b><small>${f.isPlayer?'Personagem':'Monstro'} • ${f.hp}/${f.maxHp} PV</small>${healthBar(f)}</span></button>`).join('')}</div><div class="hr"></div><button class="btn sm danger full" data-action="clear-combat">Encerrar combate</button></section>
 <section class="panel combat-stat">${focused?.monsterId?creaturePortrait(getMonster(focused.monsterId)):""}${focused?.isPlayer?playerBlock(focused):statBlock(getMonster(focused.monsterId))}</section>
-${combatControl(focused,active)}</div>`:`<div class="empty"><div class="symbol">⚔</div><h3>Sua mesa aguarda os aventureiros</h3><p>Monte um encontro e envie os monstros para esta mesa, ou adicione personagens manualmente.</p><div class="actions" style="justify-content:center"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn outline" data-action="add-player">+ Personagem</button></div></div>`}`}
+${combatControl(focused,active)}</div>${diceTools()}${combatHistory()}`:`<div class="empty"><div class="symbol">⚔</div><h3>Sua mesa aguarda os aventureiros</h3><p>Monte um encontro e envie os monstros para esta mesa, ou adicione personagens manualmente.</p><div class="actions" style="justify-content:center"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn outline" data-action="add-player">+ Personagem</button></div></div>`}`}
 function playerBlock(f){return `<div class="statblock"><div class="eyebrow">PERSONAGEM DO GRUPO</div><h2>${esc(f.name)}</h2><div class="subline">Participante cadastrado manualmente</div><div class="basicstats"><div><small>INICIATIVA</small><b>${esc(f.initiative)}</b></div><div><small>PONTOS DE VIDA</small><b>${esc(f.hp)}</b></div><div><small>PV MÁXIMO</small><b>${esc(f.maxHp)}</b></div></div><p>É possível controlar a iniciativa e os PV dos personagens agora. As fichas completas dos jogadores ficarão para a próxima fase do aplicativo.</p></div>`}
 function campaigns(){return pageHeader('SEU MUNDO','Campanhas','Organize aventuras, notas e encontros preparados.',`<button class="btn gold" data-action="new-campaign">+ Nova campanha</button>`)+`${state.campaigns.length?`<div class="grid campaign-grid">${state.campaigns.map(c=>`<article class="panel campaign-card"><span class="pill gold">${state.campaignId===c.id?'Atual':'Campanha'}</span><h3 style="margin-top:13px">${esc(c.name)}</h3><p>${esc(c.description||'Nenhuma descrição.')}</p><small>Atualizada: ${esc(c.date||'—')}</small><div class="actions"><button class="btn sm gold" data-action="edit-campaign" data-id="${esc(c.id)}">Abrir notas</button><button class="btn sm" data-action="select-campaign" data-id="${esc(c.id)}">Selecionar</button></div></article>`).join('')}</div>`:`<div class="empty"><div class="symbol">▦</div><h3>Crie sua primeira campanha</h3><p>Registre o nome, a premissa e anotações importantes da sua história. Os encontros salvos poderão ser associados a ela.</p><button class="btn gold" data-action="new-campaign">Criar campanha</button></div>`}`}
 function settings(){return pageHeader('CONFIGURAÇÃO','Seu grimório','Gerencie cópias de segurança, dados personalizados e sincronização entre dispositivos.')+`<div class="cols2"><section class="panel"><h3>Salvamento e segurança</h3><p>O aplicativo guarda os dados neste navegador. Configure a nuvem para sincronizar com outros dispositivos.</p><div class="actions"><button class="btn gold" data-action="backup">↓ Exportar backup JSON</button><button class="btn" data-action="import-backup">↑ Importar backup</button><input id="backupFile" type="file" accept=".json,application/json" hidden></div><div class="hr"></div><h3>Dados do bestiário</h3><p>${monsters.length} criaturas SRD, ${state.customMonsters.length} personalizadas. Material SRD em inglês, filtros em português.</p><button class="btn outline" data-action="new-monster">+ Criar criatura personalizada</button><div class="hr"></div><h3>Instalar em dispositivo</h3><p>Se o navegador oferecer “Instalar aplicativo” ou “Adicionar à tela inicial”, você poderá utilizar a Central como um app. Depois do primeiro acesso, as telas principais e os dados baixados ficam disponíveis offline.</p></section><section class="panel"><h3>Sincronização Supabase</h3>${cloudForm()}<div class="hr"></div><p class="caption">As chaves públicas do Supabase não são senhas. A segurança depende das políticas de Row Level Security (RLS). Nunca coloque a service_role key aqui.</p></section></div>`}
@@ -287,6 +309,14 @@ function campaignModal(id=null){const c=state.campaigns.find(x=>x.id===id);openM
 function playerModal(){openModal(`<div class="modal-top"><h2>Adicionar personagem</h2><button class="close" data-action="close">×</button></div><p>Cadastre os dados de combate do aventureiro. Fichas completas estarão disponíveis numa próxima etapa.</p><form id="playerForm"><div class="form-grid"><label>Nome<input class="field" name="name" required maxlength="90"></label><label>Iniciativa<input class="field" name="initiative" type="number" value="10"></label><label>PV máximo<input class="field" name="maxHp" type="number" min="1" value="30"></label><label>PV atual<input class="field" name="hp" type="number" min="0" value="30"></label></div><button type="submit" class="btn gold" style="margin-top:17px">Adicionar à iniciativa</button></form>`,false)}
 function parseEntries(t){return String(t||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const i=x.indexOf(':');return {name:i>=0?x.slice(0,i).trim():'Especial',description:i>=0?x.slice(i+1).trim():x}})}
 function action(name,id,button){switch(name){
+case 'roll-die':case 'roll-expression':{
+ const expr=name==='roll-die'?'1d'+Number(button?.dataset?.sides):String(el('diceExpression')?.value||'1d20');
+ const result=diceRoll(expr);
+ if(!result){toast('Expressão inválida. Use NdN+B, por exemplo 2d8+4.',true);return}
+ addCombatLog('Rolagem '+expr+': '+result.results.join(' + ')+(result.bonus?' + '+result.bonus:'')+' = '+result.total);
+ save();toast(expr+' → '+result.total);return;
+}
+case 'clear-log':if(confirm('Limpar o histórico deste combate?')){state.combat.log=[];save()}return;
 case 'toggle-menu':{
  const nav=el('sideNav');
  setMenu(!nav?.classList?.contains?.('mobile-open'));return;
@@ -323,7 +353,7 @@ case 'generate-suggestions':if(el('suggestionContainer'))el('suggestionContainer
 case 'start-combat':{let amount=state.encounter.reduce((n,x)=>n+x.qty,0);if(!amount){toast('Adicione criaturas ao encontro',true);return}if(amount>35){toast('Máximo de 35 participantes por envio',true);return}if(state.combat.list.length&&!confirm('Adicionar os novos monstros ao combate atual?'))return;for(const x of state.encounter){const m=getMonster(x.id);if(!m)continue;for(let i=0;i<x.qty;i++)addFighter(m)}selectedId=null;state.combat.turn=0;state.combat.round=1;localSave();closeModal();go('combat');return}
 case 'focus-combat':selectedId=id;render();return;
 case 'add-player':playerModal();return;
-case 'next-turn':{if(!state.combat.list.length)return;state.combat.turn++;if(state.combat.turn>=state.combat.list.length){state.combat.turn=0;state.combat.round++}selectedId=null;save();return}
+case 'next-turn':{if(!state.combat.list.length)return;addCombatLog('Fim do turno de '+state.combat.list[state.combat.turn]?.name+'.');state.combat.turn++;if(state.combat.turn>=state.combat.list.length){state.combat.turn=0;state.combat.round++}selectedId=null;save();return}
 case 'prev-turn':{if(!state.combat.list.length)return;state.combat.turn--;if(state.combat.turn<0){state.combat.turn=state.combat.list.length-1;state.combat.round=Math.max(1,state.combat.round-1)}selectedId=null;save();return}
 case 'clear-combat':if(confirm('Encerrar o combate e remover todos os participantes?')){state.combat={list:[],round:1,turn:0};selectedId=null;save()}return;
 case 'roll-all':{const active=state.combat.list[state.combat.turn]?.id;state.combat.list.forEach(f=>{if(!f.isPlayer){f.initiative=roll()+Number(getMonster(f.monsterId)?.initiative_modifier||0)}});sortFighters();state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));save();return}
@@ -357,7 +387,7 @@ case 'damage':case 'heal':{
  const n=clamp(el('damageAmount').value,0,99999);if(!n)return;
  changeHitPoints(f,name==='damage'?-n:n);return;
 }
-case 'toggle-condition':{const f=currentFighter(),c=button.dataset.condition;if(!f||!CONDITIONS.includes(c))return;if(f.conditions.includes(c))f.conditions=f.conditions.filter(x=>x!==c);else f.conditions.push(c);selectedId=f.id;save();return}
+case 'toggle-condition':{const f=currentFighter(),c=button.dataset.condition;if(!f||!CONDITIONS.includes(c))return;if(f.conditions.includes(c))f.conditions=f.conditions.filter(x=>x!==c);else f.conditions.push(c);addCombatLog(f.name+': condição '+c+' '+(f.conditions.includes(c)?'aplicada':'removida')+'.');selectedId=f.id;save();return}
 case 'remove-fighter':{const f=currentFighter();if(f&&confirm('Remover '+f.name+' do combate?')){const active=state.combat.list[state.combat.turn]?.id;state.combat.list=state.combat.list.filter(x=>x.id!==f.id);state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));selectedId=null;save()}return}
 case 'new-campaign':campaignModal();return;
 case 'edit-campaign':campaignModal(id);return;
