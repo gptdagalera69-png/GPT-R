@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Rosa dos ventos arcana da Central do Mestre"><defs><radialGradient id="gold"><stop stop-color="#fff0c5"/><stop offset=".52" stop-color="#e7bd72"/><stop offset="1" stop-color="#9b6233"/></radialGradient><radialGradient id="space"><stop stop-color="#253747"/><stop offset="1" stop-color="#0d151f"/></radialGradient><filter id="glow"><feGaussianBlur stdDeviation="1.2"/></filter></defs>
+<circle cx="80" cy="80" r="72" fill="url(#space)" stroke="#a47643" stroke-width="2"/>
+<circle cx="80" cy="80" r="63" stroke="#caa060" stroke-width="1.5" fill="none"/>
+<circle cx="80" cy="80" r="51" stroke="#99764b" stroke-width=".8" stroke-dasharray="2 5" fill="none"/>
+<path d="M80 5v24M80 131v24M5 80h24M131 80h24M28 28l14 14M118 118l14 14M132 28l-14 14M42 118l-14 14" stroke="#d8b17a" stroke-width="3" stroke-linecap="round"/>
+<g fill="none" stroke="#d4a35b" stroke-width="2"><path d="M80 13q18 35 47 40-36 9-47 40-10-33-47-40 32-7 47-40z" opacity=".5" transform="rotate(45 80 80)"/><circle cx="80" cy="80" r="36"/></g>
+<path d="M80 16 92 68 144 80 92 92 80 144 68 92 16 80 68 68Z" fill="url(#gold)" stroke="#f7d9a1" stroke-width="1"/>
+<path d="m80 16 12 52-12 12ZM144 80 92 92 80 80Z M80 144 68 92 80 80Z M16 80 68 68 80 80Z" fill="#8a5633" opacity=".65"/>
+<path d="m80 46 12 21 22 13-22 13-12 21-12-21-22-13 22-13z" fill="#162334" stroke="#eec987" stroke-width="2.5"/>
+<circle cx="80" cy="80" r="7" fill="#e2b06b" stroke="#fff3ce" stroke-width="2"/>
+<g fill="#efd6a0"><circle cx="80" cy="32" r="2.4"/><circle cx="80" cy="128" r="2.4"/><circle cx="32" cy="80" r="2.4"/><circle cx="128" cy="80" r="2.4"/></g></svg>
