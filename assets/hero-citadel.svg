@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 500" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#1c293d"/><stop offset=".36" stop-color="#657084"/><stop offset=".66" stop-color="#bd846d"/><stop offset=".82" stop-color="#f0bb81"/><stop offset="1" stop-color="#39434b"/></linearGradient>
+<radialGradient id="sun"><stop stop-color="#fff6cc"/><stop offset=".26" stop-color="#ffe0ad" stop-opacity=".82"/><stop offset="1" stop-color="#ffce9e" stop-opacity="0"/></radialGradient>
+<linearGradient id="far" x1="0" x2=".8" y1="0" y2="1"><stop stop-color="#647489"/><stop offset="1" stop-color="#293647"/></linearGradient>
+<linearGradient id="near" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#31445a"/><stop offset="1" stop-color="#142333"/></linearGradient>
+<linearGradient id="mist" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#e0e1d1" stop-opacity=".1"/><stop offset=".5" stop-color="#cdd7ce" stop-opacity=".53"/><stop offset="1" stop-color="#233344" stop-opacity="0"/></linearGradient>
+<linearGradient id="vignette"><stop stop-color="#101923" stop-opacity=".9"/><stop offset=".4" stop-color="#101923" stop-opacity=".28"/><stop offset="1" stop-color="#101923" stop-opacity=".03"/></linearGradient>
+<filter id="haze"><feGaussianBlur stdDeviation="13"/></filter><filter id="sunGlow"><feGaussianBlur stdDeviation="25"/></filter>
+</defs>
+<rect width="1320" height="500" fill="url(#sky)"/>
+<ellipse cx="845" cy="185" rx="310" ry="210" fill="url(#sun)" opacity=".84"/><circle cx="858" cy="194" r="57" fill="#ffdfae" opacity=".72" filter="url(#sunGlow)"/>
+<path d="M0 286 90 168 133 191 219 94 326 228 382 115 487 239 568 139 666 252 757 92 865 221 929 122 1040 252 1149 88 1252 244 1320 156 1320 391H0Z" fill="#a8a9a5" opacity=".42"/>
+<path d="M0 298 84 198 176 259 256 111 315 159 375 268 476 145 538 255 654 160 749 262 849 135 938 256 1076 120 1190 260 1289 176 1320 248v252H0" fill="url(#far)"/>
+<path d="m230 173 26-62 31 78-18-9-14-32-11 25m590-18 15-20 23 49-18-7-8-14" fill="#d9d7c9" opacity=".56"/>
+<path d="M0 365 122 285l59 42 125-65 69 55 116-81 135 107 124-89 98 69 158-126 111 126 103-76v253H0Z" fill="url(#near)"/>
+<path d="M660 334q180-88 380-44 165 35 280-19v150H660Z" fill="#8eaaa8" opacity=".19" filter="url(#haze)"/>
+<!-- distant gothic citadel silhouette -->
+<g fill="#202b36" stroke="#1d2631" stroke-width="2">
+<path d="M881 304V174l23-19 22 19v130zM934 307V135l18-18 18 18v172zM969 308V194l33-20 30 20v114zM1030 307V126l23-22 23 22v181zM1075 307V178l25-19 23 19v129zM1122 309V202l28-17 26 17v107zM870 306h328v36H870Z"/>
+<path d="m940 137 12-45 12 45M1040 131l13-67 13 67M888 182l16-54 17 54M1088 186l12-46 12 46" fill="#26343d"/>
+<path d="M868 306v-77l-16-10 16-12 13 8M1177 309v-94l12-12 11 12v95"/>
+</g>
+<g fill="#edb57a" opacity=".87"><path d="M898 208h8v19h-8zM946 163h8v24h-8zM980 230h9v20h-9zM1048 152h8v23h-8zM1097 210h8v20h-8zM1143 230h8v21h-8zM927 272h8v20h-8zM1013 264h8v24h-8zM1068 268h8v24h-8z"/></g>
+<path d="M790 328q132-55 243-9 134 40 287-7v14q-147 52-288 13-105-40-242 8z" fill="#303943"/>
+<path d="M0 415q230-132 474-75 189 52 322 8 127-42 247-22 145 23 277-39V500H0Z" fill="#15212d"/>
+<g opacity=".85" fill="#0c1a27">
+<path d="m730 377-24-82-24 82zm20 5-17-62-19 62zm455-17-25-98-23 98zm39 0-16-82-22 82zm36 8-24-77-20 77zm-1092 25-22-96-25 96zm31 5-21-77-22 77z"/>
+<path d="m165 394-7-80h14l-5 80m1004-25-8-76h14l-5 76"/>
+</g>
+<!-- lone explorer on cliff -->
+<path d="M410 423q34-17 69-15 54 2 83 30l-8 18-157-2z" fill="#0d1825"/>
+<g fill="#08131f"><circle cx="490" cy="316" r="13"/><path d="M476 327q-21 29-19 66l-17 51 44-14 13-38 36 49 19-1-32-57-14-55z"/><path d="m480 349-50 49 57-13 43-5 1-17z" fill="#40202a"/><path d="M511 345v101" stroke="#101725" stroke-width="7"/><path d="M511 345l5-21" stroke="#b29c77" stroke-width="3"/><path d="M469 409l-20 39h18l23-37z"/></g>
+<path d="M0 500V463l202-38 140 18 139 17 119-27 233 22 200-34 287-28v107Z" fill="#101822"/>
+<path d="M0 0H1320V500H0Z" fill="url(#vignette)"/>
+<g fill="#ffe5b8" opacity=".65"><circle cx="806" cy="49" r="1.6"/><circle cx="776" cy="81" r="1.4"/><circle cx="934" cy="62" r="1.5"/><circle cx="1190" cy="54" r="1.3"/><circle cx="682" cy="67" r="1.4"/></g>
+</svg>
