@@ -440,7 +440,7 @@ function combatBatchToolbar(fighters){
     <div class="tactical-batch-block"><label for="batchAmount">PV por alvo</label><input id="batchAmount" class="field" type="number" min="1" max="99999" inputmode="numeric" value="${amount}"><div class="tactical-batch-actions"><button class="btn danger" data-action="batch-damage" ${!selected.length?'disabled':''}>− Dano total</button><button class="btn danger outline" data-action="batch-half-damage" ${!selected.length?'disabled':''}>− Metade</button><button class="btn gold" data-action="batch-heal" ${!selected.length?'disabled':''}>+ Cura</button><button class="btn ghost" data-action="undo-batch-hp" ${ui.lastBatchHp?.length?'':'disabled'}>↶ Desfazer grupo</button></div></div>
     <div class="tactical-batch-block"><label for="batchCondition">Condição em grupo</label><select id="batchCondition" class="select">${CONDITIONS.map(c=>`<option value="${esc(c)}" ${condition===c?'selected':''}>${esc(c)}</option>`).join('')}</select><div class="tactical-batch-actions"><button class="btn outline" data-action="batch-add-condition" ${!selected.length?'disabled':''}>Aplicar condição</button><button class="btn ghost" data-action="batch-remove-condition" ${!selected.length?'disabled':''}>Remover condição</button></div></div>
    </div>
-   <div class="tactical-batch-footer"><button class="btn ghost" data-action="batch-select-all">Selecionar todos</button><button class="btn ghost" data-action="batch-clear">Limpar seleção</button><button class="btn outline" data-action="batch-open-selected" ${!selected.length?'disabled':''}>Abrir fichas selecionadas</button><button class="btn outline" data-action="combat-open-all">Abrir todas</button><button class="btn ghost" data-action="combat-collapse-all">Recolher todas</button></div>
+   <div class="tactical-batch-footer"><button class="btn ghost" data-action="batch-select-all">Selecionar todos</button><button class="btn ghost" data-action="batch-select-monsters">Só monstros</button><button class="btn ghost" data-action="batch-select-players">Só personagens</button><button class="btn ghost" data-action="batch-clear">Limpar seleção</button><button class="btn outline" data-action="batch-open-selected" ${!selected.length?'disabled':''}>Abrir fichas selecionadas</button><button class="btn outline" data-action="combat-open-all">Abrir todas</button><button class="btn ghost" data-action="combat-collapse-all">Recolher todas</button></div>
   </section>`;
 }
 function combat(){
@@ -544,6 +544,8 @@ case 'combat-open-all':ui.combatOpenIds=state.combat.list.map(f=>f.id);render();
 case 'combat-collapse-all':ui.combatOpenIds=[];render();return;
 case 'toggle-batch-target':{const on=!combatTargetIds().includes(id);setCombatTarget(id,on);render();return}
 case 'batch-select-all':ui.combatTargetIds=state.combat.list.map(f=>f.id);render();return;
+case 'batch-select-monsters':ui.combatTargetIds=state.combat.list.filter(f=>!f.isPlayer).map(f=>f.id);render();return;
+case 'batch-select-players':ui.combatTargetIds=state.combat.list.filter(f=>f.isPlayer).map(f=>f.id);render();return;
 case 'batch-clear':ui.combatTargetIds=[];render();return;
 case 'batch-open-selected':{ui.combatOpenIds=[...new Set([...combatOpenIds(),...combatTargetIds()])];render();return}
 case 'sheet-hp':{
