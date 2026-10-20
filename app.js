@@ -552,7 +552,7 @@ case 'sheet-hp':{
  ui.lastHp={fighterId:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0};ui.lastBatchHp=null;
  applyHitPointDelta(f,amount);
  addCombatLog(f.name+' '+(amount<0?'sofreu '+(-amount)+' de dano':'recuperou '+amount+' PV')+'.');
- selectedId=f.id;setCombatOpen(f.id,true);save();return;
+ localSave();render();return;
 }
 case 'batch-damage':case 'batch-half-damage':case 'batch-heal':{
  const raw=Math.max(1,clamp(el('batchAmount')?.value,1,99999));ui.batchAmount=raw;
