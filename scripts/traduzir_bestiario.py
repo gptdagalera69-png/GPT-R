@@ -73,7 +73,7 @@ TERMS = {
     "stunned":"atordoado","unconscious":"inconsciente","exhaustion":"exaustão",
     "blinded":"cego","deafened":"ensurdecido","incapacitated":"incapacitado",
 }
-DISTANCE = re.compile(r"\b(\d+(?:\.\d+)?)\s*(?:-\s*)?(?:foot|feet|ft\.)\b", re.I)
+DISTANCE = re.compile(r"\b(\d+(?:\.\d+)?)\s*(?:-\s*)?(?:foot|feet|ft\.?)(?=\W|$)", re.I)
 DICE = re.compile(r"\b\d+d\d+\b", re.I)
 ISSUES = []
 CACHE = {}
