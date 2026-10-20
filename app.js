@@ -225,6 +225,17 @@ function suggestionsMarkup(){const arr=suggestCore();return arr.length?arr.map(x
 function sortFighters(){state.combat.list.sort((a,b)=>Number(b.initiative)-Number(a.initiative)||a.name.localeCompare(b.name))}
 function addFighter(m){const init=roll()+Number(m.initiative_modifier||0);const existing=state.combat.list.filter(x=>x.monsterId===m.id).length;state.combat.list.push({id:uid(),monsterId:m.id,name:m.name+(existing?' '+(existing+1):''),hp:m.hp_max,maxHp:m.hp_max,tempHp:0,initiative:init,conditions:[],notes:'',isPlayer:false});sortFighters();toast('Criatura adicionada ao combate: '+m.name)}
 
+function advanceEffects(f){
+ if(!f||!Array.isArray(f.effects))return;
+ const expired=[];
+ f.effects=f.effects.filter(e=>{
+  if(e.remaining==null)return true;
+  e.remaining=Math.max(0,Number(e.remaining)-1);
+  if(e.remaining===0){expired.push(e.name);return false}
+  return true;
+ });
+ expired.forEach(name=>addCombatLog(f.name+': efeito '+name+' terminou.'));
+}
 function combatControl(f,active){
  if(!f)return '';
  const pct=percentHP(f),temp=Math.max(0,Number(f.tempHp)||0),numberConditions=f.conditions?.length||0;
@@ -261,6 +272,11 @@ function combatControl(f,active){
   '</div>',
   '<div class="actions" style="margin-top:9px"><button class="btn sm ghost" data-action="undo-hp" '+(ui.lastHp?.fighterId===f.id?'':'disabled')+'>↶ Desfazer alteração de PV</button></div>',
   '<div class="hr"></div>',
+  '<div class="control-subtitle">Efeitos com duração</div>',
+  '<div class="atlas-effects">'+(f.effects||[]).map(e=>'<div class="atlas-effect"><b>'+esc(e.name)+'</b><small>'+(e.remaining==null?'Indefinido':e.remaining+' turno(s)')+'</small><button class="btn sm ghost" data-action="remove-effect" data-effect="'+esc(e.id)+'">×</button></div>').join('')+'</div>',
+  '<div class="manual-hp"><input id="effectName" class="field" placeholder="Nome do efeito"><input id="effectTurns" class="field" type="number" min="0" max="999" value="1" aria-label="Duração em turnos, zero indefinido"><button class="btn gold" data-action="add-effect">Adicionar</button></div>',
+  '<button class="btn sm outline" data-action="toggle-concentration">'+(f.concentrating?'✓ Encerrar concentração':'◇ Iniciar concentração')+'</button>',
+  '<p class="caption">A duração diminui ao terminar o turno do participante. Ajuste conforme a regra do efeito.</p>',
   '<div class="small-fields">',
     '<label>PV atuais<input class="field" id="fighterHP" type="number" min="0" inputmode="numeric" value="'+esc(f.hp)+'"></label>',
     '<label>PV máximos<input class="field" id="fighterMaxHP" type="number" min="1" inputmode="numeric" value="'+esc(f.maxHp)+'"></label>',
@@ -291,7 +307,7 @@ function diceRoll(expression){
 }
 function addCombatLog(message){
  if(!Array.isArray(state.combat.log))state.combat.log=[];
- state.combat.log.unshift({id:uid(),round:state.combat.round,at:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),message:String(message).slice(0,280)});
+ state.combat.log.unshift({id:uid(),eventVersion:1,round:state.combat.round,at:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),message:String(message).slice(0,280)});
  state.combat.log=state.combat.log.slice(0,120);
 }
 function diceTools(){
@@ -390,7 +406,7 @@ case 'generate-suggestions':if(el('suggestionContainer'))el('suggestionContainer
 case 'start-combat':{let amount=state.encounter.reduce((n,x)=>n+x.qty,0);if(!amount){toast('Adicione criaturas ao encontro',true);return}if(amount>35){toast('Máximo de 35 participantes por envio',true);return}if(state.combat.list.length&&!confirm('Adicionar os novos monstros ao combate atual?'))return;for(const x of state.encounter){const m=getMonster(x.id);if(!m)continue;for(let i=0;i<x.qty;i++)addFighter(m)}selectedId=null;state.combat.turn=0;state.combat.round=1;localSave();closeModal();go('combat');return}
 case 'focus-combat':selectedId=id;render();return;
 case 'add-player':playerModal();return;
-case 'next-turn':{if(!state.combat.list.length)return;addCombatLog('Fim do turno de '+state.combat.list[state.combat.turn]?.name+'.');state.combat.turn++;if(state.combat.turn>=state.combat.list.length){state.combat.turn=0;state.combat.round++}selectedId=null;save();return}
+case 'next-turn':{if(!state.combat.list.length)return;advanceEffects(state.combat.list[state.combat.turn]);addCombatLog('Fim do turno de '+state.combat.list[state.combat.turn]?.name+'.');state.combat.turn++;if(state.combat.turn>=state.combat.list.length){state.combat.turn=0;state.combat.round++}selectedId=null;save();return}
 case 'prev-turn':{if(!state.combat.list.length)return;state.combat.turn--;if(state.combat.turn<0){state.combat.turn=state.combat.list.length-1;state.combat.round=Math.max(1,state.combat.round-1)}selectedId=null;save();return}
 case 'clear-combat':if(confirm('Encerrar o combate e remover todos os participantes?')){state.combat={list:[],round:1,turn:0};selectedId=null;save()}return;
 case 'roll-all':{const active=state.combat.list[state.combat.turn]?.id;state.combat.list.forEach(f=>{if(!f.isPlayer){f.initiative=roll()+Number(getMonster(f.monsterId)?.initiative_modifier||0)}});sortFighters();state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));save();return}
@@ -423,6 +439,21 @@ case 'damage':case 'heal':{
  const f=currentFighter();if(!f)return;
  const n=clamp(el('damageAmount').value,0,99999);if(!n)return;
  changeHitPoints(f,name==='damage'?-n:n);return;
+}
+case 'add-effect':{
+ const f=currentFighter(),effectName=String(el('effectName')?.value||'').trim().slice(0,80);
+ if(!f||!effectName)return;
+ const turns=clamp(el('effectTurns')?.value,0,999);
+ (f.effects??=[]).push({id:uid(),name:effectName,remaining:turns||null});
+ addCombatLog(f.name+': efeito '+effectName+' aplicado.');selectedId=f.id;save();return;
+}
+case 'remove-effect':{
+ const f=currentFighter();if(!f)return;
+ f.effects=(f.effects||[]).filter(e=>e.id!==button?.dataset?.effect);save();return;
+}
+case 'toggle-concentration':{
+ const f=currentFighter();if(!f)return;
+ f.concentrating=!f.concentrating;addCombatLog(f.name+(f.concentrating?' iniciou':' encerrou')+' concentração.');save();return;
 }
 case 'toggle-condition':{const f=currentFighter(),c=button.dataset.condition;if(!f||!CONDITIONS.includes(c))return;if(f.conditions.includes(c))f.conditions=f.conditions.filter(x=>x!==c);else f.conditions.push(c);addCombatLog(f.name+': condição '+c+' '+(f.conditions.includes(c)?'aplicada':'removida')+'.');selectedId=f.id;save();return}
 case 'remove-fighter':{const f=currentFighter();if(f&&confirm('Remover '+f.name+' do combate?')){const active=state.combat.list[state.combat.turn]?.id;state.combat.list=state.combat.list.filter(x=>x.id!==f.id);state.combat.turn=Math.max(0,state.combat.list.findIndex(x=>x.id===active));selectedId=null;save()}return}
