@@ -59,6 +59,8 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
   await click('action','focus-combat',firstId);
   assert.match(get('view'),/Dano rápido/);
   assert.match(get('view'),/Cura rápida/);
+  assert.doesNotMatch(get('view'),/tactical-sheet-body/);
+  await click('action','toggle-combat-sheet',firstId);
   assert.match(get('view'),/tactical-sheet-body/);
   const originalHP=stateBefore.combat.list[0].hp;
   await click('action','quick-hp',null,{amount:'-5'});
@@ -73,6 +75,7 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
   let afterAdd=JSON.parse(db.get('central-mestre-state-v2'));
   assert.equal(afterAdd.combat.list[afterAdd.combat.turn].id,activeBeforeAdd);
   const firstTwo=afterAdd.combat.list.slice(0,2).map(f=>f.id);
+  await click('action','combat-collapse-all');
   await click('action','toggle-combat-sheet',firstTwo[0]);
   await click('action','toggle-combat-sheet',firstTwo[1]);
   assert.ok((get('view').match(/class="tactical-fighter is-open/g)||[]).length>=2);
