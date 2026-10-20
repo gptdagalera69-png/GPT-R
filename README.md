@@ -84,3 +84,19 @@ A Central do Mestre recebeu um redesenho responsivo sem apagar o formato dos dad
 - `tests/smoke.test.mjs` — testes de regressão da ficha, combate e botões de PV
 
 **Nota:** o campo de imagem é uma referência remota HTTPS fornecida pelo mestre; sem imagem específica, a ficha mostra uma ilustração temática do tipo de criatura, não uma arte individual do monstro. O processo de tradução das descrições do SRD em português é separado do redesenho.
+
+
+## Atlas Arcano do Mestre — identidade visual 3.0
+
+A visão geral foi redesenhada inspirada no painel de fantasia aprovado pelo mestre, preservando as funções e dados do aplicativo.
+
+- **Brasão original:** rosa dos ventos em dourado, com versão compacta para favicon e PWA (`assets/atlas-logo.svg`, `icon.svg`).
+- **Novo layout:** menu lateral ornamentado, status da nuvem e perfil; novo topo com busca que direciona ao bestiário e atalho para criar encontro.
+- **Hero de fantasia:** arte panorâmica original em SVG (`assets/hero-citadel.svg`), com castelo, montanhas e viajante; imagem criada especificamente para o projeto, sem usar conteúdo comercial ou depender de imagens externas.
+- **Quatro cartões navegáveis:** Bestiário, encontros preparados, combatentes e campanhas, com tema de cor e contadores reais.
+- **Painéis da home:** ações rápidas para cada área e resumo da sessão com grupo, XP e rodada.
+- **Responsividade:** no mobile, o menu vira uma gaveta acessível pelo topo e pela barra inferior; o banner, cartões e botões se adaptam à largura.
+- **PWA:** cache revisado para incluir o novo tema e as artes do aplicativo.
+- **Compatibilidade:** continua usando as mesmas estruturas de monstros, campanhas, encontros e combatentes. Não há migração destrutiva de dados.
+
+Os outros módulos continuam com seus recursos anteriores de fichas, iniciativa, dano, cura e condições. A arte panorâmica é uma ilustração vetorial original, portanto não é uma cópia fotográfica do conceito visual aprovado.
