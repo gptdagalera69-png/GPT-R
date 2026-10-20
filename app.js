@@ -29,7 +29,7 @@ const sign=n=>Number(n)>=0?'+'+n:String(n);
 const emptyState=()=>({party:[5,5,5,5],difficulty:'moderate',encounter:[],savedEncounters:[],combat:{list:[],round:1,turn:0},campaigns:[],campaignId:null,customMonsters:[],creatureImages:{},favorites:[],campaignRecords:{}});
 function migrate(data){const base=emptyState();if(!data||typeof data!=='object')return base;const s={...base,...data};s.party=Array.isArray(s.party)?s.party.map(l=>clamp(l,1,20)).slice(0,12):base.party;s.encounter=Array.isArray(s.encounter)?s.encounter:[];s.savedEncounters=Array.isArray(s.savedEncounters)?s.savedEncounters:[];s.campaigns=Array.isArray(s.campaigns)?s.campaigns:[];s.customMonsters=Array.isArray(s.customMonsters)?s.customMonsters:[];s.creatureImages=s.creatureImages&&typeof s.creatureImages==='object'?s.creatureImages:{};s.favorites=Array.isArray(s.favorites)?s.favorites:[];s.campaignRecords=s.campaignRecords&&typeof s.campaignRecords==='object'?s.campaignRecords:{};s.combat={...base.combat,...(s.combat||{})};s.combat.list=Array.isArray(s.combat.list)?s.combat.list:[];return s;}
 let state;try{state=migrate(JSON.parse(localStorage.getItem(STORE)||'null'))}catch{state=emptyState()}
-let favoritesOnly=false;let monsters=[],monsterById=new Map(),bestiaryLocalized=false,view='dashboard',selectedId=null,filter={q:'',cr:'',type:'',sort:'cr',page:1},builderFilter={q:'',type:'',cr:''},ui={};
+let favoritesOnly=false;let monsters=[],monsterById=new Map(),view='dashboard',selectedId=null,filter={q:'',cr:'',type:'',sort:'cr',page:1},builderFilter={q:'',type:'',cr:''},ui={};
 const el=id=>document.getElementById(id);
 const localSave=()=>{localStorage.setItem(STORE,JSON.stringify(state));queueCloudSave(state)};
 function overwriteState(x){state=migrate(x);localStorage.setItem(STORE,JSON.stringify(state));render()}
@@ -486,18 +486,24 @@ document.addEventListener('submit',e=>{
  filter.page=1;go('bestiary');
 });
 
-async function boot(){try{let d=null;
+async function boot(){try{
+    const orig=await fetch('/data/monsters.json',{cache:'no-cache'});
+    if(!orig.ok)throw Error('Arquivo de monstros indisponível');
+    const d=await orig.json();
     try{
-      const pt=await fetch('/data/monsters.pt-BR.json',{cache:'no-store'});
-      if(pt.ok){const payload=await pt.json();if(payload._locale==='pt-BR'&&Array.isArray(payload.monsters)){d=payload;bestiaryLocalized=true}}
-    }catch(e){console.warn('Acervo brasileiro ainda não está disponível:',e)}
-    if(!d){
-      const orig=await fetch('/data/monsters.json');
-      if(!orig.ok)throw Error('Arquivo de monstros indisponível');
-      d=await orig.json();
-      try{const resp=await fetch('/data/nomes-pt-BR.json');if(resp.ok){const names=await resp.json();d.monsters.forEach(m=>{m.name_en=m.name;m.name=names[m.name]||m.name})}}catch{}
-    }
-    monsters=d.monsters||[];monsterById=new Map(monsters.map(m=>[m.id,m]));render();
-    if(!bestiaryLocalized)console.info('Acervo SRD original carregado; descrições completas em português ainda não estão disponíveis.');
-    await initializeCloud({toast,render,overwriteState,saveState:()=>state});if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{})}catch(err){el('view').innerHTML=`<div class="empty"><h2>Não foi possível carregar o bestiário</h2><p>${esc(err.message)}</p><button class="btn" onclick="location.reload()">Tentar novamente</button></div>`;console.error(err)}}
+      const resp=await fetch('/data/nomes-pt-BR.json',{cache:'no-cache'});
+      if(resp.ok){
+        const names=await resp.json();
+        d.monsters.forEach(m=>{m.name_en=m.name;m.name=names[m.name]||m.name});
+      }
+    }catch(e){console.warn('Não foi possível carregar os nomes em português:',e)}
+    monsters=Array.isArray(d.monsters)?d.monsters:[];
+    monsterById=new Map(monsters.map(m=>[m.id,m]));
+    render();
+    await initializeCloud({toast,render,overwriteState,saveState:()=>state});
+    if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  }catch(err){
+    el('view').innerHTML=`<div class="empty"><h2>Não foi possível carregar o bestiário</h2><p>${esc(err.message)}</p><button class="btn" onclick="location.reload()">Tentar novamente</button></div>`;
+    console.error(err);
+  }}
 boot();
