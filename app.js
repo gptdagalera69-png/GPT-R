@@ -401,12 +401,62 @@ function combatHistory(){
  return '<section class="panel atlas-history"><div class="split"><h3>Histórico da sessão</h3><button class="btn sm ghost" data-action="clear-log">Limpar</button></div>'+(log.length?'<ol class="combat-log">'+log.slice(0,30).map(x=>'<li><small>R'+esc(x.round)+' • '+esc(x.at)+'</small><span>'+esc(x.message)+'</span></li>').join('')+'</ol>':'<p class="caption">Danos, curas, turnos e rolagens aparecerão aqui.</p>')+'</section>';
 }
 
-function combat(){const fighters=state.combat.list;const active=fighters[state.combat.turn];if(selectedId&&!fighters.some(f=>f.id===selectedId))selectedId=null;const focused=fighters.find(f=>f.id===selectedId)||active;
-return pageHeader('SESSÃO EM ANDAMENTO','Mesa de combate','Visão tática de todos os participantes. Selecione um cartão para abrir os detalhes.',`<button class="btn outline" data-action="add-player">+ Personagem</button><button class="btn" data-view="bestiary">+ Monstro</button>`)+`
-<div class="round-banner atlas-turn-bar"><div><small>RODADA</small><br><strong>${state.combat.round}</strong></div><div class="grow"><small>TURNO ATUAL</small><br><b>${esc(active?.name||'Nenhum combate ativo')}</b></div><button class="btn" data-action="prev-turn" ${!fighters.length?'disabled':''}>← Anterior</button><button class="btn gold" data-action="next-turn" ${!fighters.length?'disabled':''}>Próximo turno →</button></div>
-${fighters.length?`<div class="combat-layout atlas-combat-layout"><section class="panel tight atlas-roster-panel"><div class="split"><h3 style="margin:0">Participantes (${fighters.length})</h3><button class="btn sm ghost" data-action="roll-all">Rolar NPCs</button></div><p class="caption">Toque em um cartão para ver a ficha e os controles.</p><div class="roster atlas-roster-grid">${fighters.map((f,i)=>`<button class="roster-item atlas-roster-card ${focused?.id===f.id?'selected':''} ${i===state.combat.turn?'atlas-current':''}" data-action="focus-combat" data-id="${esc(f.id)}" aria-label="Abrir detalhes de ${esc(f.name)}"><span class="atlas-combat-avatar">${f.monsterId?creaturePortrait(getMonster(f.monsterId)):"<span class=\"avatar-player\">⚔</span>"}</span><span class="init" title="Iniciativa">${esc(f.initiative)}</span><span class="who"><b>${i===state.combat.turn?'▶ ':''}${esc(f.name)}</b><small>INI ${esc(f.initiative)} · ${f.hp}/${f.maxHp} PV</small>${healthBar(f)}</span></button>`).join('')}</div><div class="hr"></div><button class="btn sm danger full" data-action="clear-combat">Encerrar combate</button></section>
-<section class="panel combat-stat atlas-combat-stat ${selectedId?'atlas-detail-open':''}"><div class="atlas-detail-head"><strong>Ficha e habilidades</strong><button class="btn sm ghost atlas-close-detail" data-action="collapse-combat">✕ Fechar detalhes</button></div>${focused?.monsterId?creaturePortrait(getMonster(focused.monsterId)):""}${focused?.isPlayer?playerBlock(focused):statBlock(getMonster(focused.monsterId))}</section>
-<div class="atlas-control-wrap ${selectedId?'atlas-detail-open':''}">${combatControl(focused,active)}</div></div>${diceTools()}${combatHistory()}`:`<div class="empty"><div class="symbol">⚔</div><h3>Sua mesa aguarda os aventureiros</h3><p>Monte um encontro e envie os monstros para esta mesa, ou adicione personagens manualmente.</p><div class="actions" style="justify-content:center"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn outline" data-action="add-player">+ Personagem</button></div></div>`}`}
+function tacticalFighterCard(f,i,active){
+ const open=combatOpenIds().includes(f.id),targeted=combatTargetIds().includes(f.id),m=f.monsterId?getMonster(f.monsterId):null;
+ const temp=Math.max(0,Number(f.tempHp)||0);
+ const stateLabel=percentHP(f)<=0?'Sem PV':percentHP(f)<=25?'Crítico':percentHP(f)<=55?'Ferido':'Estável';
+ return `<article class="tactical-fighter ${open?'is-open':''} ${targeted?'is-targeted':''} ${f.id===active?.id?'is-current':''}" data-fighter-id="${esc(f.id)}">
+   <div class="tactical-fighter-head">
+    <button class="tactical-target-toggle ${targeted?'on':''}" data-action="toggle-batch-target" data-id="${esc(f.id)}" aria-pressed="${targeted}" title="Selecionar para alterações em grupo"><span>${targeted?'✓':'○'}</span><small>ALVO</small></button>
+    <div class="tactical-avatar">${m?creaturePortrait(m):'<span class="avatar-player">⚔</span>'}</div>
+    <button class="tactical-identity" data-action="focus-combat" data-id="${esc(f.id)}" aria-label="Editar ${esc(f.name)}">
+      <span class="tactical-name">${f.id===active?.id?'▶ ':''}${esc(f.name)}</span>
+      <span class="tactical-meta">INI ${esc(f.initiative)} · ${f.isPlayer?'Personagem':'ND '+esc(m?.cr||'—')} · ${stateLabel}</span>
+      <span class="tactical-hp-line"><b>${f.hp}/${f.maxHp} PV</b>${temp?' · +'+temp+' temp':''}</span>
+      ${healthBar(f)}
+    </button>
+    <div class="tactical-head-actions">
+      <button class="btn tactical-open-btn ${open?'gold':'outline'}" data-action="toggle-combat-sheet" data-id="${esc(f.id)}">${open?'Recolher':'Abrir ficha'}</button>
+      <button class="btn tactical-edit-btn" data-action="focus-combat" data-id="${esc(f.id)}">Controles</button>
+    </div>
+   </div>
+   <div class="tactical-inline-hp" aria-label="Ajustes rápidos de pontos de vida">
+    <button data-action="sheet-hp" data-id="${esc(f.id)}" data-amount="-10">−10</button>
+    <button data-action="sheet-hp" data-id="${esc(f.id)}" data-amount="-5">−5</button>
+    <button data-action="sheet-hp" data-id="${esc(f.id)}" data-amount="-1">−1</button>
+    <button class="heal" data-action="sheet-hp" data-id="${esc(f.id)}" data-amount="1">+1</button>
+    <button class="heal" data-action="sheet-hp" data-id="${esc(f.id)}" data-amount="5">+5</button>
+    <button class="heal" data-action="sheet-hp" data-id="${esc(f.id)}" data-amount="10">+10</button>
+   </div>
+   ${open?`<div class="tactical-sheet-body"><div class="tactical-sheet-status"><span>PV <b>${f.hp}/${f.maxHp}</b></span><span>CA <b>${esc(m?.armor_class||'—')}</b></span><span>INI <b>${esc(f.initiative)}</b></span><span>Condições <b>${f.conditions?.length||0}</b></span></div>${f.isPlayer?playerBlock(f):statBlock(m)}</div>`:''}
+  </article>`;
+}
+function combatBatchToolbar(fighters){
+ const selected=combatTargetIds(),amount=Math.max(1,Number(ui.batchAmount)||8);
+ const condition=ui.batchCondition&&CONDITIONS.includes(ui.batchCondition)?ui.batchCondition:CONDITIONS[0];
+ return `<section class="panel tactical-batch-panel">
+   <div class="tactical-batch-top"><div><div class="eyebrow">CONTROLE EM GRUPO</div><h3>Dano em área e alterações simultâneas</h3><p>Selecione os alvos nas fichas. Ex.: Bola de Fogo — aplique o dano total aos que falharam e metade aos que passaram.</p></div><span class="tactical-selected-count"><b>${selected.length}</b> selecionado(s)</span></div>
+   <div class="tactical-batch-grid">
+    <div class="tactical-batch-block"><label for="batchAmount">PV por alvo</label><input id="batchAmount" class="field" type="number" min="1" max="99999" inputmode="numeric" value="${amount}"><div class="tactical-batch-actions"><button class="btn danger" data-action="batch-damage" ${!selected.length?'disabled':''}>− Dano total</button><button class="btn danger outline" data-action="batch-half-damage" ${!selected.length?'disabled':''}>− Metade</button><button class="btn gold" data-action="batch-heal" ${!selected.length?'disabled':''}>+ Cura</button><button class="btn ghost" data-action="undo-batch-hp" ${ui.lastBatchHp?.length?'':'disabled'}>↶ Desfazer grupo</button></div></div>
+    <div class="tactical-batch-block"><label for="batchCondition">Condição em grupo</label><select id="batchCondition" class="select">${CONDITIONS.map(c=>`<option value="${esc(c)}" ${condition===c?'selected':''}>${esc(c)}</option>`).join('')}</select><div class="tactical-batch-actions"><button class="btn outline" data-action="batch-add-condition" ${!selected.length?'disabled':''}>Aplicar condição</button><button class="btn ghost" data-action="batch-remove-condition" ${!selected.length?'disabled':''}>Remover condição</button></div></div>
+   </div>
+   <div class="tactical-batch-footer"><button class="btn ghost" data-action="batch-select-all">Selecionar todos</button><button class="btn ghost" data-action="batch-clear">Limpar seleção</button><button class="btn outline" data-action="batch-open-selected" ${!selected.length?'disabled':''}>Abrir fichas selecionadas</button><button class="btn outline" data-action="combat-open-all">Abrir todas</button><button class="btn ghost" data-action="combat-collapse-all">Recolher todas</button></div>
+  </section>`;
+}
+function combat(){
+ const fighters=state.combat.list,active=fighters[state.combat.turn];
+ if(selectedId&&!fighters.some(f=>f.id===selectedId))selectedId=null;
+ combatOpenIds();combatTargetIds();
+ const focused=fighters.find(f=>f.id===selectedId)||null;
+ return pageHeader('SESSÃO EM ANDAMENTO','Mesa de combate','Fichas compactas completas, múltiplas fichas abertas e alterações em grupo sem perder a visão da batalha.',`<button class="btn outline" data-action="add-player">+ Personagem</button><button class="btn" data-view="bestiary">+ Monstro</button>`)+`
+ <div class="round-banner atlas-turn-bar tactical-turn-bar"><div><small>RODADA</small><br><strong>${state.combat.round}</strong></div><div class="grow"><small>TURNO ATUAL</small><br><b>${esc(active?.name||'Nenhum combate ativo')}</b></div><button class="btn" data-action="prev-turn" ${!fighters.length?'disabled':''}>← Anterior</button><button class="btn gold" data-action="next-turn" ${!fighters.length?'disabled':''}>Próximo turno →</button></div>
+ ${fighters.length?`${combatBatchToolbar(fighters)}
+ <div class="tactical-board-head"><div><div class="eyebrow">MAPA TÁTICO</div><h2>${fighters.length} participantes</h2></div><div class="actions"><button class="btn outline" data-action="roll-all">🎲 Rolar NPCs</button><button class="btn danger" data-action="clear-combat">Encerrar combate</button></div></div>
+ <section class="tactical-board">${fighters.map((f,i)=>tacticalFighterCard(f,i,active)).join('')}</section>
+ ${focused?`<section class="tactical-inspector"><div class="tactical-inspector-head"><div><div class="eyebrow">EDIÇÃO INDIVIDUAL</div><h2>${esc(focused.name)}</h2></div><button class="btn ghost" data-action="collapse-combat">✕ Fechar controles</button></div>${combatControl(focused,active)}</section>`:''}
+ ${diceTools()}${combatHistory()}`:`<div class="empty"><div class="symbol">⚔</div><h3>Sua mesa aguarda os aventureiros</h3><p>Monte um encontro e envie os monstros para esta mesa, ou adicione personagens manualmente.</p><div class="actions" style="justify-content:center"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn outline" data-action="add-player">+ Personagem</button></div></div>`}
+ `;
+}
 function playerBlock(f){return `<div class="statblock"><div class="eyebrow">PERSONAGEM DO GRUPO</div><h2>${esc(f.name)}</h2><div class="subline">Participante cadastrado manualmente</div><div class="basicstats"><div><small>INICIATIVA</small><b>${esc(f.initiative)}</b></div><div><small>PONTOS DE VIDA</small><b>${esc(f.hp)}</b></div><div><small>PV MÁXIMO</small><b>${esc(f.maxHp)}</b></div></div><p>É possível controlar a iniciativa e os PV dos personagens agora. As fichas completas dos jogadores ficarão para a próxima fase do aplicativo.</p></div>`}
 function campaignNotebook(c){
  const records=state.campaignRecords[c.id]||[];
