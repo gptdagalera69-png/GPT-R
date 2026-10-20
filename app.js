@@ -26,8 +26,8 @@ const roll=(s=20)=>Math.floor(Math.random()*s)+1;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,Number(v)||0));
 const modifier=n=>{const a=Math.floor((Number(n||10)-10)/2);return a>=0?'+'+a:String(a)};
 const sign=n=>Number(n)>=0?'+'+n:String(n);
-const emptyState=()=>({party:[5,5,5,5],difficulty:'moderate',encounter:[],savedEncounters:[],combat:{list:[],round:1,turn:0},campaigns:[],campaignId:null,customMonsters:[]});
-function migrate(data){const base=emptyState();if(!data||typeof data!=='object')return base;const s={...base,...data};s.party=Array.isArray(s.party)?s.party.map(l=>clamp(l,1,20)).slice(0,12):base.party;s.encounter=Array.isArray(s.encounter)?s.encounter:[];s.savedEncounters=Array.isArray(s.savedEncounters)?s.savedEncounters:[];s.campaigns=Array.isArray(s.campaigns)?s.campaigns:[];s.customMonsters=Array.isArray(s.customMonsters)?s.customMonsters:[];s.combat={...base.combat,...(s.combat||{})};s.combat.list=Array.isArray(s.combat.list)?s.combat.list:[];return s;}
+const emptyState=()=>({party:[5,5,5,5],difficulty:'moderate',encounter:[],savedEncounters:[],combat:{list:[],round:1,turn:0},campaigns:[],campaignId:null,customMonsters:[],creatureImages:{}});
+function migrate(data){const base=emptyState();if(!data||typeof data!=='object')return base;const s={...base,...data};s.party=Array.isArray(s.party)?s.party.map(l=>clamp(l,1,20)).slice(0,12):base.party;s.encounter=Array.isArray(s.encounter)?s.encounter:[];s.savedEncounters=Array.isArray(s.savedEncounters)?s.savedEncounters:[];s.campaigns=Array.isArray(s.campaigns)?s.campaigns:[];s.customMonsters=Array.isArray(s.customMonsters)?s.customMonsters:[];s.creatureImages=s.creatureImages&&typeof s.creatureImages==='object'?s.creatureImages:{};s.combat={...base.combat,...(s.combat||{})};s.combat.list=Array.isArray(s.combat.list)?s.combat.list:[];return s;}
 let state;try{state=migrate(JSON.parse(localStorage.getItem(STORE)||'null'))}catch{state=emptyState()}
 let monsters=[],monsterById=new Map(),bestiaryLocalized=false,view='dashboard',selectedId=null,filter={q:'',cr:'',type:'',sort:'cr',page:1},builderFilter={q:'',type:'',cr:''},ui={};
 const el=id=>document.getElementById(id);
@@ -47,7 +47,7 @@ function difficulty(x,b=budget()){return x<=0?'Sem criaturas':x<=b[0]?'Baixa':x<
 function go(to){view=to;filter.page=1;window.scrollTo({top:0,behavior:'instant'});render()}
 function pageHeader(kicker,title,subtitle,buttons=''){return `<div class="eyebrow">${esc(kicker)}</div><div class="section-header" style="margin-top:0"><div><h1>${esc(title)}</h1><p>${esc(subtitle)}</p></div><div class="actions">${buttons}</div></div>`}
 function footer(){return `<div class="footnote">D&D System Reference Document 5.2.1 © Wizards of the Coast LLC — <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Dados estruturados republicados via <a href="https://github.com/adkinn/srd-5.2.1" target="_blank" rel="noopener">Open5e/adkinn</a>. Interface e fichas disponíveis em PT-BR após preparação estática do bestiário. Tradução não oficial, sem serviços de tradução no navegador. <a href="https://www.dndbeyond.com/sources/dnd/srd-5.2.1" target="_blank" rel="noopener">Fonte oficial</a>. Balanceamento é uma estimativa, não uma garantia.</div>`}
-function navbar(){const names={dashboard:'Visão geral',bestiary:'Bestiário',builder:'Criador de encontros',combat:'Mesa de combate',campaigns:'Campanhas',settings:'Configurações'};el('currentCrumb').textContent=names[view];document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));el('countMonsters').textContent=allMonsters().length;cloudStatus();}
+function navbar(){if(document.body)document.body.dataset.section=view;const names={dashboard:'Visão geral',bestiary:'Bestiário',builder:'Criador de encontros',combat:'Mesa de combate',campaigns:'Campanhas',settings:'Configurações'};el('currentCrumb').textContent=names[view];document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));el('countMonsters').textContent=allMonsters().length;cloudStatus();}
 function render(){navbar();const content={dashboard:dashboard,bestiary:bestiary,builder:builder,combat:combat,campaigns:campaigns,settings:settings};el('view').innerHTML=(content[view]||dashboard)()+footer();}
 function dashboard(){const camps=state.campaigns.length,active=state.combat.list.length,qty=state.encounter.reduce((x,i)=>x+i.qty,0);
 return `<div class="hero"><div class="eyebrow">SUA MESA, SEU DOMÍNIO</div><h1>Bem-vindo à sua<br>Central do Mestre.</h1><p>Tudo o que você precisa para encontrar criaturas, montar encontros equilibrados e conduzir combates sem interromper a aventura.</p><div class="actions"><button class="btn gold" data-view="bestiary">♜ Explorar bestiário →</button><button class="btn outline" data-view="combat">⚔ Abrir combate</button></div></div>
@@ -57,7 +57,39 @@ return `<div class="hero"><div class="eyebrow">SUA MESA, SEU DOMÍNIO</div><h1>B
 <div class="feature"><span>⚔</span><div><b>Encontros inteligentes</b><small>Calcule os orçamentos de XP para grupos com níveis diferentes.</small></div><button class="btn sm" data-view="builder">Preparar →</button></div>
 <div class="feature"><span>✧</span><div><b>Mesa de combate</b><small>Iniciativa, turnos, rodada, PV individuais e condições.</small></div><button class="btn sm" data-view="combat">Controlar →</button></div></section>
 <section class="panel"><h3>Resumo da sua mesa</h3><p>Grupo atual: <b>${state.party.length} aventureiros</b>, níveis ${state.party.join(', ')}.</p><p>Encontro preparado: <b>${fmt(groupXp())} XP</b>, dificuldade <span class="pill gold">${difficulty(groupXp())}</span>.</p><p>Rodada do combate: <b>${state.combat.round}</b>.</p><div class="hr"></div><div class="notice info">As criaturas desta biblioteca são do SRD revisado de D&D (2024/2025). Materiais comerciais e homebrews devem ser adicionados separadamente e com autorização de uso.</div><div class="actions"><button class="btn gold" data-view="builder">Criar encontro</button><button class="btn" data-action="backup">Exportar meus dados</button></div></section></div>`}
-function monsterCard(m){return `<article class="monster-card"><div class="card-top"><div><div class="eyebrow" style="font-size:9px;margin:0 0 9px">${esc(TYPE[m.type]||m.type)}</div><h3>${esc(titleOf(m))}</h3><p>${esc((SIZE[m.size]||m.size)+' • '+(m.source==='personalizado'?'Criação própria':'SRD 5.2.1'))}</p></div><span class="pill gold">ND ${esc(m.cr)}</span></div><div class="facts"><div><b>${esc(m.armor_class)}</b><small>CA</small></div><div><b>${esc(m.hp_max)}</b><small>PV</small></div><div><b>${fmt(xp(m))}</b><small>XP</small></div></div><div class="card-actions"><button class="btn sm" data-action="details" data-id="${esc(m.id)}">Ficha completa</button><button class="btn sm gold" data-action="add-encounter" data-id="${esc(m.id)}" title="Adicionar ao encontro">+ Encontro</button></div></article>`}
+
+const CREATURE_ICONS=['aberration','beast','celestial','construct','dragon','elemental','fey','fiend','giant','humanoid','monstrosity','ooze','plant','undead'];
+function artworkURL(m){
+  const raw=String((state.creatureImages||{})[m?.id]||m?.image_url||'').trim();
+  try{const u=new URL(raw);return u.protocol==='https:'?u.href:''}catch{return ''}
+}
+function creaturePortrait(m){
+  if(!m)return '';
+  const key=CREATURE_ICONS.includes(m.type)?m.type:'monstrosity',url=artworkURL(m);
+  return `<div class="creature-portrait ${url?'with-image':''}" data-type="${esc(key)}" role="img" aria-label="${esc(url?'Imagem associada à criatura '+m.name:'Ilustração temática de '+(TYPE[key]||key))}">
+    <svg class="art-sigil" viewBox="0 0 240 240" aria-hidden="true"><use href="/assets/creature-symbols.svg#${esc(key)}"></use></svg>
+    ${url?`<img class="creature-img" src="${esc(url)}" loading="lazy" alt="${esc('Arte associada a '+m.name)}" referrerpolicy="no-referrer">`:''}
+    <div class="portrait-label"><strong>${esc(m.name)}</strong><span>${url?'IMAGEM ASSOCIADA PELO MESTRE':'SÍMBOLO ORIGINAL • '+esc(TYPE[key]||'Criatura')}</span></div>
+  </div>`;
+}
+function percentHP(f){return clamp(Math.round(Number(f?.hp||0)/Math.max(1,Number(f?.maxHp||1))*100),0,100)}
+function hpLevel(f){const p=percentHP(f);return p<=25?'low':p<=55?'mid':''}
+function healthBar(f){return `<div class="hpbar" role="progressbar" aria-label="Pontos de vida" aria-valuemin="0" aria-valuemax="${Number(f.maxHp)||1}" aria-valuenow="${Number(f.hp)||0}"><span class="${hpLevel(f)}" style="width:${percentHP(f)}%"></span></div>`}
+function changeHitPoints(f,difference){
+  if(!f||!Number.isFinite(difference))return;
+  ui.lastHp={fighterId:f.id,hp:Number(f.hp)||0,tempHp:Number(f.tempHp)||0};
+  if(difference<0){
+    let remaining=-difference,temporary=Math.max(0,Number(f.tempHp)||0);
+    const absorbed=Math.min(remaining,temporary);
+    f.tempHp=temporary-absorbed;remaining-=absorbed;
+    f.hp=clamp((Number(f.hp)||0)-remaining,0,Math.max(1,Number(f.maxHp)||1));
+  }else{
+    f.hp=clamp((Number(f.hp)||0)+difference,0,Math.max(1,Number(f.maxHp)||1));
+  }
+  selectedId=f.id;save();
+}
+
+function monsterCard(m){return `<article class="monster-card"><div class="card-top"><div><div class="monster-meta"><div class="monster-glyph"><svg viewBox="0 0 240 240" aria-hidden="true"><use href="/assets/creature-symbols.svg#${esc(CREATURE_ICONS.includes(m.type)?m.type:'monstrosity')}"></use></svg></div><div><div class="eyebrow" style="font-size:9px;margin:0 0 9px">${esc(TYPE[m.type]||m.type)}</div><h3>${esc(titleOf(m))}</h3><p>${esc((SIZE[m.size]||m.size)+' • '+(m.source==='personalizado'?'Criação própria':'SRD 5.2.1'))}</p></div></div></div><span class="pill gold">ND ${esc(m.cr)}</span></div><div class="facts"><div><b>${esc(m.armor_class)}</b><small>CA</small></div><div><b>${esc(m.hp_max)}</b><small>PV</small></div><div><b>${fmt(xp(m))}</b><small>XP</small></div></div><div class="card-actions"><button class="btn sm" data-action="details" data-id="${esc(m.id)}">Ficha completa</button><button class="btn sm gold" data-action="add-encounter" data-id="${esc(m.id)}" title="Adicionar ao encontro">+ Encontro</button></div></article>`}
 function sortedFiltered(q='',cr='',type='',sort='cr'){const query=norm(q);let ms=allMonsters().filter(m=>(!query||norm(m.name+' '+(m.name_en||'')+' '+pseudoPT(m)).includes(query))&&(!cr||m.cr===cr)&&(!type||m.type===type));return ms.sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):sort==='hp'?b.hp_max-a.hp_max:(a.cr_numeric-b.cr_numeric)||a.name.localeCompare(b.name))}
 function cardsMarkup(){const ms=sortedFiltered(filter.q,filter.cr,filter.type,filter.sort);return `<div class="split" style="margin:15px 0"><span class="result-info">${fmt(ms.length)} resultados • ${Math.min(ms.length,filter.page*36)} exibidos</span><button class="btn sm outline" data-action="new-monster">+ Criar monstro</button></div>${ms.length?`<div class="grid monster-grid">${ms.slice(0,filter.page*36).map(monsterCard).join('')}</div>${ms.length>filter.page*36?'<div style="text-align:center;margin:20px"><button class="btn" data-action="more-monsters">Carregar mais criaturas ↓</button></div>':''}`:`<div class="empty"><div class="symbol">♜</div><h3>Nenhuma criatura encontrada</h3><p>Altere os filtros ou cadastre sua própria criatura.</p><button class="btn" data-action="clear-filter">Limpar filtros</button></div>`}`}
 function bestiary(){const types=[...new Set(allMonsters().map(m=>m.type))].sort();const crs=[...new Set(allMonsters().map(m=>m.cr))].sort((a,b)=>(CR_XP[a]||0)-(CR_XP[b]||0));return pageHeader('ARQUIVO DAS CRIATURAS','Bestiário','Fichas detalhadas do SRD 5.2.1, com filtros rápidos por nome, desafio e tipo.',`<button class="btn outline" data-action="new-monster">+ Monstro personalizado</button>`)+`<div class="filter-bar"><input class="field search" id="monsterSearch" aria-label="Buscar criatura" placeholder="⌕ Buscar por nome (português ou inglês)..." value="${esc(filter.q)}"><select class="select" id="monsterCR" aria-label="Filtrar por ND"><option value="">Todos os NDs</option>${crs.map(c=>`<option value="${esc(c)}" ${filter.cr===c?'selected':''}>ND ${esc(c)}</option>`).join('')}</select><select class="select" id="monsterType"><option value="">Todos os tipos</option>${types.map(t=>`<option value="${esc(t)}" ${filter.type===t?'selected':''}>${esc(TYPE[t]||t)}</option>`).join('')}</select><select class="select" id="monsterSort"><option value="cr" ${filter.sort==='cr'?'selected':''}>Menor ND</option><option value="name" ${filter.sort==='name'?'selected':''}>Nome A–Z</option><option value="hp" ${filter.sort==='hp'?'selected':''}>Mais PV</option></select></div><div id="monsterCards">${cardsMarkup()}</div>`}
@@ -71,9 +103,37 @@ return `<div class="statblock"><div class="eyebrow">${esc(m.source==='personaliz
 <div class="properties">${propLine('Deslocamento',speed(m))}${propLine('Testes de resistência',sb.saving_throws)}${propLine('Perícias',sb.skills)}${propLine('Vulnerabilidades',sb.damage_vulnerabilities)}${propLine('Resistências',sb.damage_resistances)}${propLine('Imunidades a dano',sb.damage_immunities)}${propLine('Imunidades a condições',sb.condition_immunities)}${propLine('Sentidos',sb.senses)}${propLine('Idiomas',sb.languages)}</div>
 ${entries('Características',sb.traits)}${entries('Ações',sb.actions)}${entries('Ações bônus',sb.bonus_actions)}${entries('Reações',sb.reactions)}${legends}
 <div class="footnote">Fonte: ${esc(m.source||'SRD 5.2.1')} • ${esc(m.attribution||'Criação própria')}. Tradução brasileira da base SRD elaborada previamente; confira CDs, dados e termos técnicos na fonte original. Não é uma tradução oficial.</div></div>`}
-function openModal(body,drawer=true){el('modalRoot').innerHTML=`<div class="modal-backdrop" data-close="1"><div class="${drawer?'drawer':'dialog'}" role="dialog" aria-modal="true">${body}</div></div>`}
+function openModal(body,drawer=true,extra=''){el('modalRoot').innerHTML=`<div class="modal-backdrop" data-close="1"><div class="${drawer?'drawer':'dialog'} ${esc(extra)}" role="dialog" aria-modal="true">${body}</div></div>`}
 function closeModal(){el('modalRoot').innerHTML=''}
-function monsterModal(id){const m=getMonster(id);if(!m)return;openModal(`<div class="modal-top"><span class="pill gold">ND ${esc(m.cr)} • ${esc(TYPE[m.type]||m.type)}</span><button class="close" data-action="close" aria-label="Fechar">×</button></div>${statBlock(m)}<div class="footer-actions"><button class="btn gold" data-action="add-encounter" data-id="${esc(m.id)}">+ Adicionar ao encontro</button><button class="btn outline" data-action="add-combat" data-id="${esc(m.id)}">⚔ Adicionar ao combate</button><button class="btn" data-action="close">Fechar</button></div>`)}
+
+function monsterModal(id){
+ const m=getMonster(id);if(!m)return;
+ const hasArt=!!artworkURL(m);
+ openModal(`<div class="sheet-top">
+   <div><div class="eyebrow">PÁGINA DO BESTIÁRIO</div><span class="pill gold">ND ${esc(m.cr)} • ${esc(TYPE[m.type]||m.type)}</span></div>
+   <button class="close" data-action="close" aria-label="Fechar ficha">×</button>
+  </div>
+  <div class="sheet-layout">
+   <aside class="sheet-aside">
+     ${creaturePortrait(m)}
+     <div class="side-facts"><div><small>CA</small><b>${esc(m.armor_class)}</b></div><div><small>PV</small><b>${esc(m.hp_max)}</b></div><div><small>ND</small><b>${esc(m.cr)}</b></div></div>
+     <div class="sheet-memo">
+       <div class="eyebrow">ADICIONAR À MESA</div>
+       <h3>${esc(m.name)}</h3>
+       <p>${esc(speed(m))}</p>
+       <div class="actions">
+         <button class="btn gold" data-action="add-encounter" data-id="${esc(m.id)}">+ Encontro</button>
+         <button class="btn outline" data-action="add-combat" data-id="${esc(m.id)}">⚔ Combate</button>
+       </div>
+       <button class="btn" data-action="set-monster-image" data-id="${esc(m.id)}">▧ ${hasArt?'Trocar imagem':'Adicionar imagem da criatura'}</button>
+       ${hasArt?`<button class="btn ghost" data-action="remove-monster-image" data-id="${esc(m.id)}">Remover imagem associada</button>`:''}
+       <p class="caption">Imagens adicionadas pelo mestre precisam ter permissão de uso. Quando não há imagem, usamos um símbolo original para o tipo de criatura.</p>
+     </div>
+   </aside>
+   <div class="sheet-book">${statBlock(m)}</div>
+  </div>`,true,'sheet-drawer');
+}
+
 function builder(){let budgets=budget(),total=groupXp(),dmap={low:'Baixa',moderate:'Moderada',high:'Alta'};let sel=state.encounter;
 return pageHeader('PREPARAÇÃO DE AVENTURAS','Criador de encontros','Configure o grupo, escolha criaturas e calcule a dificuldade estimada pelas regras de 2024.',`<button class="btn outline" data-action="save-encounter">Salvar encontro</button>`)+`
 <div class="builder-layout"><section class="panel"><h3>Seu grupo de aventureiros</h3><div class="split"><span class="caption">Personagens: <b>${state.party.length}</b></span><div class="actions"><button class="btn sm" data-action="party-remove" ${state.party.length<=1?'disabled':''}>−</button><button class="btn sm" data-action="party-add" ${state.party.length>=12?'disabled':''}>+</button></div></div><div class="form-label">Nível de cada personagem</div><div class="levels">${state.party.map((l,i)=>`<label>P${i+1}<input aria-label="Nível personagem ${i+1}" type="number" min="1" max="20" value="${l}" data-party-index="${i}"></label>`).join('')}</div>
