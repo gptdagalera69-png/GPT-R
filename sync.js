@@ -16,7 +16,31 @@ async function refresh(){if(!session?.refresh_token)return false;if(Number(sessi
 async function saveRemote(current){if(!logged()||!current)return;const alive=await refresh();if(!alive)return;const now=new Date().toISOString();const item={owner_id:session.user.id,data:current,updated_at:now};await api('/rest/v1/dm_workspace?on_conflict=owner_id','POST',[item],true,{'Prefer':'resolution=merge-duplicates,return=representation'});remoteTime=now;localStorage.setItem(LAST_KEY,remoteTime);lastSync=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});dirty=false;updateStatus()}
 async function drain(){if(saving||!logged()||!queued)return;saving=true;updateStatus();const snapshot=queued;queued=null;try{await saveRemote(snapshot)}catch(err){dirty=true;queued=snapshot;ctx?.toast?.('Nuvem: '+err.message+'. Dados continuam salvos localmente.',true)}finally{saving=false;updateStatus()}if(queued)timer=setTimeout(drain,1700)}
 export function queueCloudSave(s){dirty=true;queued=structuredClone(s);if(logged()){clearTimeout(timer);timer=setTimeout(drain,1200)}}
-async function readRemote(showPrompt=true){if(!logged())return;await refresh();const rows=await api('/rest/v1/dm_workspace?select=data,updated_at&owner_id=eq.'+encodeURIComponent(session.user.id));const row=rows?.[0];if(!row){const existing=ctx.saveState();await saveRemote(existing);return}const changed=!remoteTime||Date.parse(row.updated_at)>Date.parse(remoteTime)+300;if(changed&&!dirty){if(!remoteTime&&showPrompt){if(confirm('Existe um backup no Supabase. Deseja carregar os dados da nuvem neste dispositivo? Cancelar mantém os dados locais e envia-os para a nuvem.')){ctx.overwriteState(row.data);ctx.toast('Dados carregados da nuvem')}else await saveRemote(ctx.saveState())}else{ctx.overwriteState(row.data);ctx.toast('Seu combate foi atualizado pela nuvem')}}remoteTime=row.updated_at;localStorage.setItem(LAST_KEY,remoteTime)}else if(!dirty){remoteTime=row.updated_at;localStorage.setItem(LAST_KEY,remoteTime)}lastSync=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});updateStatus()}
+async function readRemote(showPrompt=true){
+  if(!logged())return;
+  await refresh();
+  const rows=await api('/rest/v1/dm_workspace?select=data,updated_at&owner_id=eq.'+encodeURIComponent(session.user.id));
+  const row=rows?.[0];
+  if(!row){await saveRemote(ctx.saveState());return}
+  const changed=!remoteTime||Date.parse(row.updated_at)>Date.parse(remoteTime)+300;
+  if(changed&&!dirty){
+    if(!remoteTime&&showPrompt){
+      if(confirm('Existe um backup no Supabase. Carregar os dados da nuvem e substituir os dados deste dispositivo? Cancelar mantém os dados locais e envia-os à nuvem.')){
+        ctx.overwriteState(row.data);ctx.toast('Dados carregados da nuvem');
+      }else{await saveRemote(ctx.saveState());return}
+    }else{
+      ctx.overwriteState(row.data);
+      ctx.toast('Seu combate foi atualizado pela nuvem');
+    }
+    remoteTime=row.updated_at;
+    localStorage.setItem(LAST_KEY,remoteTime);
+  }else if(!dirty){
+    remoteTime=row.updated_at;
+    localStorage.setItem(LAST_KEY,remoteTime);
+  }
+  lastSync=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  updateStatus();
+}
 export async function initializeCloud(c){ctx=c;if(logged()){await refresh();try{await readRemote(false)}catch(e){ctx.toast('Não foi possível receber dados da nuvem: '+e.message,true)} }updateStatus();setInterval(async()=>{if(document.visibilityState==='visible'&&logged()&&!dirty&&!saving){try{await readRemote(false)}catch{}}},18000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&logged()&&!dirty)readRemote(false).catch(()=>{})})}
 export async function handleCloudAction(form,data,c){ctx=c;const intent=form.dataset.intent||'config';form.dataset.intent='config';try{
 if(intent==='config'){const url=String(data.get('url')||'').trim().replace(/\/+$/,'');const key=String(data.get('key')||'').trim();if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url))throw Error('Use uma URL válida https://PROJETO.supabase.co');if(!key||!(/^(sb_publishable_|eyJ)/.test(key)))throw Error('Informe somente uma chave publicável/anon, nunca service_role.');config={url,key};localStorage.setItem(CONFIG_KEY,JSON.stringify(config));ctx.toast('Configuração salva. Entre na sua conta para sincronizar.');ctx.render();return}
