@@ -1,0 +1,74 @@
+/* Central do Mestre — UX responsiva, contraste, hierarquia e navegação */
+:root{--ux-gold:#f2c77c;--ux-edge:rgba(219,184,126,.23);--ux-focus:#f5d48c}
+html{scroll-behavior:smooth}
+button,input,select,textarea{font:inherit}
+button,[data-view],[data-action]{-webkit-tap-highlight-color:transparent}
+button{cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--ux-focus)!important;outline-offset:3px}
+button:disabled{opacity:.48;cursor:not-allowed}
+.btn,.nav-link,.mobile-nav button{transition:background .16s ease,border-color .16s ease,transform .16s ease}
+.btn:hover:not(:disabled){filter:brightness(1.12)}
+.btn:active:not(:disabled),.mobile-nav button:active{transform:scale(.98)}
+.content{max-width:1600px;margin-inline:auto}
+.section-header{gap:16px;align-items:center}
+.section-header .actions{display:flex;flex-wrap:wrap;gap:9px}
+.section-header .actions .btn{min-height:43px}
+.panel{border-color:var(--ux-edge)}
+.round-banner.atlas-turn-bar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:16px;border:1px solid rgba(242,199,124,.35);border-radius:16px;background:linear-gradient(115deg,rgba(169,121,54,.17),rgba(21,34,48,.96))}
+.atlas-turn-bar .grow{flex:1 1 160px;min-width:0}
+.atlas-turn-bar .grow b{overflow-wrap:anywhere}
+.atlas-turn-bar .btn{min-height:44px}
+.atlas-combat-layout{display:grid;grid-template-columns:minmax(250px,330px) minmax(0,1fr);gap:16px;align-items:start}
+.atlas-roster-panel{min-width:0}
+.atlas-roster-grid{display:grid;gap:9px}
+.atlas-roster-card{width:100%;min-width:0;text-align:left;border:1px solid var(--ux-edge)!important;border-radius:12px!important;background:rgba(22,38,54,.85)!important;padding:10px!important;display:flex!important;gap:9px;align-items:center;min-height:76px}
+.atlas-roster-card:hover{border-color:rgba(242,199,124,.7)!important;background:rgba(43,58,72,.95)!important}
+.atlas-roster-card.selected{border-color:#f2c77c!important;box-shadow:0 0 0 1px rgba(242,199,124,.3)}
+.atlas-roster-card.atlas-current{background:linear-gradient(110deg,rgba(127,89,36,.35),rgba(29,43,57,.95))!important}
+.atlas-roster-card.atlas-current .who b{color:#ffe0a5}
+.atlas-roster-card .who{flex:1;min-width:0}
+.atlas-roster-card .who b{display:block;overflow-wrap:anywhere;line-height:1.3}
+.atlas-roster-card .who small{display:block;line-height:1.35}
+.atlas-roster-card .init{font-weight:800;color:var(--ux-gold)}
+.atlas-combat-stat{min-width:0;overflow-wrap:anywhere}
+.atlas-control-wrap{grid-column:2;min-width:0}
+.atlas-detail-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--ux-edge);color:var(--ux-gold)}
+.atlas-close-detail{display:none}
+.mobile-nav button{min-width:0}
+@media(min-width:901px){
+ .atlas-roster-grid{max-height:min(70vh,720px);overflow:auto;padding:3px;scrollbar-width:thin}
+}
+@media(max-width:900px){
+ .content{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+ .atlas-combat-layout{display:flex!important;flex-direction:column;gap:14px}
+ .atlas-roster-panel{width:100%;max-width:none}
+ .atlas-roster-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:none!important;overflow:visible!important}
+ .atlas-roster-card{min-height:86px;padding:9px!important;gap:7px}
+ .atlas-roster-card .atlas-combat-avatar{width:42px;height:48px;flex:0 0 42px}
+ .atlas-roster-card .init{display:none}
+ .atlas-roster-card .who b{font-size:12px}
+ .atlas-roster-card .who small{font-size:10px}
+ .atlas-roster-card .portrait-label{display:none}
+ .atlas-combat-stat,.atlas-control-wrap{display:none!important}
+ .atlas-combat-stat.atlas-detail-open,.atlas-control-wrap.atlas-detail-open{display:block!important;width:100%}
+ .atlas-close-detail{display:inline-flex!important}
+ .atlas-combat-stat .creature-portrait{max-height:190px}
+ .atlas-detail-head{position:sticky;top:0;z-index:4;background:#172637;padding:10px;border-radius:10px}
+ .atlas-turn-bar{display:grid!important;grid-template-columns:80px minmax(0,1fr);gap:9px!important}
+ .atlas-turn-bar .btn{width:100%;font-size:13px}
+ .atlas-turn-bar .grow{min-width:0}
+ .mobile-nav{padding-bottom:env(safe-area-inset-bottom,0px)}
+ .mobile-nav button{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+ .mobile-nav button span{font-size:10px;line-height:1.2}
+ .section-header .actions{width:100%}
+ .section-header .actions .btn{flex:1 1 145px}
+ .btn{min-height:40px}
+}
+@media(max-width:380px){
+ .atlas-roster-card{padding:7px!important;min-height:76px}
+ .atlas-roster-card .atlas-combat-avatar{width:34px;height:42px;flex-basis:34px}
+ .atlas-roster-card .who b{font-size:11px}
+ .atlas-roster-card .who small{font-size:9px}
+ .atlas-turn-bar .btn{font-size:12px;padding-inline:6px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn,.nav-link,.mobile-nav button{transition:none}}
