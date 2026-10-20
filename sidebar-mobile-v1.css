@@ -1,0 +1,111 @@
+/* Navegação lateral em todas as plataformas */
+.mobile-nav{display:none!important}
+
+@media(max-width:850px){
+  #app{display:block!important}
+  .atlas-sidebar{
+    display:flex!important;
+    position:fixed!important;
+    top:0!important;
+    left:0!important;
+    bottom:0!important;
+    width:88px!important;
+    height:100dvh!important;
+    min-height:100vh;
+    flex:0 0 88px!important;
+    padding:12px 8px 14px!important;
+    z-index:60!important;
+    overflow-y:auto;
+    overflow-x:hidden;
+    transform:none!important;
+    visibility:visible!important;
+  }
+  .atlas-sidebar .sidebar-gilding{inset:6px!important}
+  .atlas-sidebar .atlas-brand{
+    justify-content:center!important;
+    padding:3px 0 18px!important;
+    margin:0!important;
+  }
+  .atlas-sidebar .atlas-emblem{
+    width:47px!important;
+    height:47px!important;
+    margin:0!important;
+  }
+  .atlas-sidebar .brand-copy,
+  .atlas-sidebar .nav-caption,
+  .atlas-sidebar .sidebar-bottom,
+  .atlas-sidebar .sidebar-close,
+  .atlas-sidebar .nav-link i{display:none!important}
+
+  .atlas-sidebar .atlas-nav{display:grid!important;gap:7px!important}
+  .atlas-sidebar .nav-link{
+    min-height:67px!important;
+    padding:8px 4px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:5px!important;
+    text-align:center!important;
+    border-radius:11px!important;
+  }
+  .atlas-sidebar .nav-link .ui-icon{
+    width:25px!important;
+    height:25px!important;
+    flex:0 0 25px!important;
+  }
+  .atlas-sidebar .nav-link>span{
+    width:100%!important;
+    flex:0 0 auto!important;
+    text-align:center!important;
+    font-size:9px!important;
+    line-height:1.12!important;
+    display:block!important;
+  }
+  .atlas-sidebar .nav-setting{
+    margin-top:8px!important;
+    min-height:67px!important;
+  }
+  .atlas-sidebar .nav-link.active:after{display:none!important}
+
+  .shell{
+    width:auto!important;
+    min-width:0!important;
+    margin-left:88px!important;
+  }
+  .content{
+    padding-bottom:30px!important;
+    min-width:0!important;
+  }
+  .menu-toggle{display:none!important}
+  .nav-backdrop,#navBackdrop{display:none!important}
+  body.nav-open{overflow:auto!important}
+  .topbar{left:auto!important}
+}
+
+@media(max-width:480px){
+  .atlas-sidebar{
+    width:74px!important;
+    flex-basis:74px!important;
+    padding:10px 6px 12px!important;
+  }
+  .shell{margin-left:74px!important}
+  .atlas-sidebar .atlas-emblem{width:40px!important;height:40px!important}
+  .atlas-sidebar .atlas-brand{padding-bottom:13px!important}
+  .atlas-sidebar .nav-link{
+    min-height:61px!important;
+    padding:6px 3px!important;
+    gap:4px!important;
+  }
+  .atlas-sidebar .nav-link .ui-icon{width:22px!important;height:22px!important}
+  .atlas-sidebar .nav-link>span{font-size:8px!important}
+  .atlas-sidebar .nav-setting{min-height:61px!important}
+  .content{padding-left:10px!important;padding-right:10px!important}
+  .topbar{padding-left:10px!important;padding-right:10px!important}
+}
+
+@media(max-width:360px){
+  .atlas-sidebar{width:68px!important;flex-basis:68px!important}
+  .shell{margin-left:68px!important}
+  .atlas-sidebar .nav-link>span{font-size:7.5px!important}
+}
