@@ -498,6 +498,6 @@ async function boot(){try{let d=null;
       try{const resp=await fetch('/data/nomes-pt-BR.json');if(resp.ok){const names=await resp.json();d.monsters.forEach(m=>{m.name_en=m.name;m.name=names[m.name]||m.name})}}catch{}
     }
     monsters=d.monsters||[];monsterById=new Map(monsters.map(m=>[m.id,m]));render();
-    if(!bestiaryLocalized)toast('Os nomes já estão em português. A preparação das descrições brasileiras está em andamento.',true);
+    if(!bestiaryLocalized)console.info('Acervo SRD original carregado; descrições completas em português ainda não estão disponíveis.');
     await initializeCloud({toast,render,overwriteState,saveState:()=>state});if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{})}catch(err){el('view').innerHTML=`<div class="empty"><h2>Não foi possível carregar o bestiário</h2><p>${esc(err.message)}</p><button class="btn" onclick="location.reload()">Tentar novamente</button></div>`;console.error(err)}}
 boot();
