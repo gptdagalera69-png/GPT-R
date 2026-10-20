@@ -1,12 +1,12 @@
 {
   "id": "/index.html",
-  "name": "Central do Mestre — RPG",
-  "short_name": "Central Mestre",
-  "description": "Bestiário, encontros e mesa de combate",
+  "name": "Central do Mestre — Atlas Arcano",
+  "short_name": "Atlas Mestre",
+  "description": "Atlas Arcano: o grimório de mesa para monstros, encontros, campanhas e combates",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#11161c",
-  "theme_color": "#11161c",
+  "background_color": "#0c1420",
+  "theme_color": "#0c1420",
   "icons": [
     {
       "src": "/icon.svg",
