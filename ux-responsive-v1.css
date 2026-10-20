@@ -39,7 +39,7 @@ button:disabled{opacity:.48;cursor:not-allowed}
  .atlas-roster-grid{max-height:min(70vh,720px);overflow:auto;padding:3px;scrollbar-width:thin}
 }
 @media(max-width:900px){
- .content{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+ .content{padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))}
  .atlas-combat-layout{display:flex!important;flex-direction:column;gap:14px}
  .atlas-roster-panel{width:100%;max-width:none}
  .atlas-roster-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:none!important;overflow:visible!important}
@@ -58,8 +58,8 @@ button:disabled{opacity:.48;cursor:not-allowed}
  .atlas-turn-bar .btn{width:100%;font-size:13px}
  .atlas-turn-bar .grow{min-width:0}
  .mobile-nav{padding-bottom:env(safe-area-inset-bottom,0px)}
- .mobile-nav button{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
- .mobile-nav button span{font-size:10px;line-height:1.2}
+ .mobile-nav button{min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+ .mobile-nav button span{font-size:9px;line-height:1.1}
  .section-header .actions{width:100%}
  .section-header .actions .btn{flex:1 1 145px}
  .btn{min-height:40px}
