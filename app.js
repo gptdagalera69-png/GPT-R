@@ -25,9 +25,26 @@ const uid=()=>crypto.randomUUID?.()||Date.now().toString(36)+Math.random().toStr
 const roll=(s=20)=>Math.floor(Math.random()*s)+1;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,Number(v)||0));
 const modifier=n=>{const a=Math.floor((Number(n||10)-10)/2);return a>=0?'+'+a:String(a)};
-const sign=n=>Number(n)>=0?'+'+n:String(n);
+const sign=n=>{const v=Number(n);return Number.isFinite(v)?(v>=0?'+'+v:String(v)):'+0'};
 const emptyState=()=>({party:[5,5,5,5],difficulty:'moderate',encounter:[],savedEncounters:[],combat:{list:[],round:1,turn:0},campaigns:[],campaignId:null,customMonsters:[],creatureImages:{},favorites:[],campaignRecords:{}});
-function migrate(data){const base=emptyState();if(!data||typeof data!=='object')return base;const s={...base,...data};s.party=Array.isArray(s.party)?s.party.map(l=>clamp(l,1,20)).slice(0,12):base.party;s.encounter=Array.isArray(s.encounter)?s.encounter:[];s.savedEncounters=Array.isArray(s.savedEncounters)?s.savedEncounters:[];s.campaigns=Array.isArray(s.campaigns)?s.campaigns:[];s.customMonsters=Array.isArray(s.customMonsters)?s.customMonsters:[];s.creatureImages=s.creatureImages&&typeof s.creatureImages==='object'?s.creatureImages:{};s.favorites=Array.isArray(s.favorites)?s.favorites:[];s.campaignRecords=s.campaignRecords&&typeof s.campaignRecords==='object'?s.campaignRecords:{};s.combat={...base.combat,...(s.combat||{})};s.combat.list=Array.isArray(s.combat.list)?s.combat.list:[];return s;}
+function migrate(data){
+ const base=emptyState();if(!data||typeof data!=='object')return base;const s={...base,...data};
+ s.party=Array.isArray(s.party)?s.party.map(l=>clamp(l,1,20)).slice(0,12):base.party;
+ s.encounter=Array.isArray(s.encounter)?s.encounter.filter(x=>x&&typeof x.id==='string').map(x=>({id:x.id,qty:clamp(x.qty,1,35)})):[];
+ s.savedEncounters=Array.isArray(s.savedEncounters)?s.savedEncounters:[];
+ s.campaigns=Array.isArray(s.campaigns)?s.campaigns:[];
+ s.customMonsters=Array.isArray(s.customMonsters)?s.customMonsters:[];
+ s.creatureImages=s.creatureImages&&typeof s.creatureImages==='object'?s.creatureImages:{};
+ s.favorites=Array.isArray(s.favorites)?s.favorites:[];
+ s.campaignRecords=s.campaignRecords&&typeof s.campaignRecords==='object'?s.campaignRecords:{};
+ s.combat={...base.combat,...(s.combat&&typeof s.combat==='object'?s.combat:{})};
+ const raw=Array.isArray(s.combat.list)?s.combat.list:[];
+ s.combat.list=raw.filter(f=>f&&f.id&&f.name).map(f=>{const maxHp=Math.max(1,Number(f.maxHp)||1);return {...f,name:String(f.name).slice(0,100),maxHp,hp:clamp(f.hp,0,maxHp),tempHp:clamp(f.tempHp,0,99999),initiative:Number(f.initiative)||0,conditions:Array.isArray(f.conditions)?f.conditions.filter(c=>CONDITIONS.includes(c)):[],effects:Array.isArray(f.effects)?f.effects.filter(e=>e&&e.id&&e.name).map(e=>({...e,name:String(e.name).slice(0,80),remaining:e.remaining==null?null:clamp(e.remaining,0,999)})):[],notes:String(f.notes||'').slice(0,3000),concentrating:!!f.concentrating,isPlayer:!!f.isPlayer};});
+ s.combat.round=Math.max(1,Number(s.combat.round)||1);
+ s.combat.turn=s.combat.list.length?clamp(s.combat.turn,0,s.combat.list.length-1):0;
+ s.combat.log=Array.isArray(s.combat.log)?s.combat.log.slice(0,120):[];
+ return s;
+}
 let state;try{state=migrate(JSON.parse(localStorage.getItem(STORE)||'null'))}catch{state=emptyState()}
 let favoritesOnly=false;let monsters=[],monsterById=new Map(),view='dashboard',selectedId=null,filter={q:'',cr:'',type:'',sort:'cr',page:1},builderFilter={q:'',type:'',cr:''},ui={};
 const el=id=>document.getElementById(id);
@@ -223,7 +240,7 @@ function suggestCore(){const target=budget()[{low:0,moderate:1,high:2}[state.dif
 return proposals.sort((a,b)=>a.score-b.score).slice(0,8)}
 function suggestionsMarkup(){const arr=suggestCore();return arr.length?arr.map(x=>{const m=getMonster(x.id);return `<div class="feature"><span>♜</span><div><b>${x.qty} × ${esc(m.name)}</b><small>ND ${esc(m.cr)} • ${fmt(x.cost)} XP • ${difficulty(x.cost)}</small></div><button class="btn sm outline" data-action="apply-suggestion" data-id="${esc(x.id)}" data-qty="${x.qty}">Usar</button></div>`}).join(''):'<div class="empty"><p>Nenhuma opção atende aos filtros e ao orçamento. Ajuste o tipo ou a dificuldade.</p></div>'}
 function sortFighters(){state.combat.list.sort((a,b)=>Number(b.initiative)-Number(a.initiative)||a.name.localeCompare(b.name))}
-function addFighter(m){const init=roll()+Number(m.initiative_modifier||0);const existing=state.combat.list.filter(x=>x.monsterId===m.id).length;state.combat.list.push({id:uid(),monsterId:m.id,name:m.name+(existing?' '+(existing+1):''),hp:m.hp_max,maxHp:m.hp_max,tempHp:0,initiative:init,conditions:[],notes:'',isPlayer:false});sortFighters();toast('Criatura adicionada ao combate: '+m.name)}
+function addFighter(m){const activeId=state.combat.list[state.combat.turn]?.id;const init=roll()+Number(m.initiative_modifier||0);const existing=state.combat.list.filter(x=>x.monsterId===m.id).length;state.combat.list.push({id:uid(),monsterId:m.id,name:m.name+(existing?' '+(existing+1):''),hp:m.hp_max,maxHp:m.hp_max,tempHp:0,initiative:init,conditions:[],effects:[],concentrating:false,notes:'',isPlayer:false});sortFighters();if(activeId){const next=state.combat.list.findIndex(x=>x.id===activeId);if(next>=0)state.combat.turn=next}toast('Criatura adicionada ao combate: '+m.name)}
 
 function advanceEffects(f){
  if(!f||!Array.isArray(f.effects))return;
@@ -403,7 +420,7 @@ case 'delete-encounter':if(confirm('Excluir o encontro salvo?')){state.savedEnco
 case 'party-add':if(state.party.length<12){state.party.push(state.party.at(-1)||1);save()}return;
 case 'party-remove':if(state.party.length>1){state.party.pop();save()}return;
 case 'generate-suggestions':if(el('suggestionContainer'))el('suggestionContainer').innerHTML=suggestionsMarkup();return;
-case 'start-combat':{let amount=state.encounter.reduce((n,x)=>n+x.qty,0);if(!amount){toast('Adicione criaturas ao encontro',true);return}if(amount>35){toast('Máximo de 35 participantes por envio',true);return}if(state.combat.list.length&&!confirm('Adicionar os novos monstros ao combate atual?'))return;for(const x of state.encounter){const m=getMonster(x.id);if(!m)continue;for(let i=0;i<x.qty;i++)addFighter(m)}selectedId=null;state.combat.turn=0;state.combat.round=1;localSave();closeModal();go('combat');return}
+case 'start-combat':{const valid=state.encounter.filter(x=>getMonster(x.id));let amount=valid.reduce((n,x)=>n+x.qty,0);if(!amount){toast('Adicione criaturas válidas ao encontro',true);return}if(amount>35){toast('Máximo de 35 participantes por envio',true);return}const hadCombat=state.combat.list.length>0;if(hadCombat&&!confirm('Adicionar os novos monstros ao combate atual?'))return;for(const x of valid){const m=getMonster(x.id);for(let i=0;i<x.qty;i++)addFighter(m)}selectedId=null;if(!hadCombat){state.combat.turn=0;state.combat.round=1}localSave();closeModal();go('combat');return}
 case 'focus-combat':selectedId=id;render();return;
 case 'collapse-combat':selectedId=null;render();return;
 case 'add-player':playerModal();return;
