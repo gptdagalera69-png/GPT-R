@@ -22,6 +22,15 @@ test('SRD com 322 fichas carregado, busca e combate funcionam',async()=>{
   const get=id=>document.getElementById(id).innerHTML;
   assert.equal(monsterData.monsters.length,322);
   assert.match(get('view'),/322/);
+  assert.match(get('view'),/atlas-hero/);
+  assert.match(get('view'),/Comece de onde parou/);
+  assert.equal((get('view').match(/class="atlas-stat /g)||[]).length,4);
+  const layout=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+  assert.match(layout,/atlas-v3.css/);
+  assert.match(layout,/globalSearchForm/);
+  assert.match(layout,/atlas-logo.svg/);
+  assert.match(readFileSync(new URL('../atlas-v3.css',import.meta.url),'utf8'),/atlas-stats/);
+  assert.match(readFileSync(new URL('../assets/hero-citadel.svg',import.meta.url),'utf8'),/<svg/);
   const click=async(kind, value,id,extra={})=>events.click({target:{closest(sel){if(kind==='view'&&sel==='[data-view]')return{dataset:{view:value}};if(kind==='action'&&sel==='[data-action]')return{dataset:{action:value,id,...extra}};return null},matches(){return false}}});
   await click('view','bestiary');
   assert.match(get('view'),/Bestiário/);
