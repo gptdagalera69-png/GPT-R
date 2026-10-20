@@ -49,12 +49,12 @@ O conteúdo de criaturas deriva de **D&D System Reference Document 5.2.1**, © W
 
 Fonte oficial: https://www.dndbeyond.com/sources/dnd/srd-5.2.1
 
-O dataset estruturado é republicado por **Open5e** e por [adkinn/srd-5.2.1](https://github.com/adkinn/srd-5.2.1) com atribuição CC BY 4.0. O arquivo `public/data/monsters.json` foi colocado em `data/monsters.json` nesta aplicação para acesso estático; os valores em inglês não são uma tradução oficial do SRD.
+O dataset estruturado é republicado por **Open5e** e por [adkinn/srd-5.2.1](https://github.com/adkinn/srd-5.2.1) com atribuição CC BY 4.0. O arquivo `data/monsters.json` serve as fichas estruturadas pela rota `/data/monsters.json`; os valores em inglês não são uma tradução oficial do SRD.
 
 Este aplicativo não oferece PDFs comerciais nem afirma conter todas as criaturas dos livros de D&D.
 
 ## Estrutura
 - `index.html`, `styles.css`, `app.js`, `sync.js`: interface e lógica
-- `public/data/monsters.json`: fichas SRD estruturadas
+- `data/monsters.json`: fichas SRD estruturadas
 - `sw.js`, `manifest.webmanifest`, `icon.svg`: PWA
 - `supabase/001_dm_workspace.sql`: tabela + RLS
